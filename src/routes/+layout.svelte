@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 
+	let { children } = $props();
+
 	onMount(() => {
 		if (browser) {
 			const handleKeydown = (e: any) => {
@@ -37,5 +39,5 @@
 </script>
 
 <main class="h-full">
-	<slot />
+	{@render children?.()}
 </main>

@@ -1,16 +1,20 @@
 <script lang="ts">
-	import { createEventDispatcher, onMount, tick } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { browser } from '$app/environment';
 	import type { JSONValue } from '$lib/types.ts';
 
-	const dispatch = createEventDispatcher<{ update: JSONValue }>();
+	let {
+		update,
+		data
+	}: {
+		update: (data: JSONValue) => void;
+		data: JSONValue;
+	} = $props();
 
-	export let data: JSONValue = {} as { [k: string]: JSONValue };
-
-	let textContent: string = '';
+	let textContent: string = $state('');
+	let lineNumbers: number[] = $state([]);
+	let errorLine: number | null = $state(null);
 	let textarea: HTMLTextAreaElement | null = null;
-	let lineNumbers: number[] = [];
-	let errorLine: number | null = null;
 
 	const updateTextContent = (): void => {
 		try {
@@ -30,7 +34,7 @@
 	const handleInput = (): void => {
 		try {
 			const parsed = JSON.parse(textContent);
-			dispatch('update', parsed);
+			update(parsed);
 			errorLine = null;
 		} catch (e: any) {
 			const msg = e?.message ?? String(e);
@@ -56,7 +60,7 @@
 			const parsed = JSON.parse(textContent);
 			textContent = JSON.stringify(parsed, null, 2);
 			updateLineNumbers();
-			dispatch('update', parsed);
+			update(parsed);
 			await tick();
 			if (textarea) textarea.focus();
 		} catch {}
@@ -102,9 +106,11 @@
 		}
 	});
 
-	$: if (data) {
-		updateTextContent();
-	}
+	$effect(() => {
+		if (data) {
+			updateTextContent();
+		}
+	});
 </script>
 
 <div class="flex h-full">
@@ -122,8 +128,8 @@
 		<textarea
 			bind:this={textarea}
 			bind:value={textContent}
-			on:input={handleInput}
-			on:keydown={handleKeyDown}
+			oninput={handleInput}
+			onkeydown={handleKeyDown}
 			class="h-full w-full resize-none border-0 bg-white p-4 font-mono text-sm leading-6 focus:outline-none"
 			placeholder="Enter JSON here..."
 			spellcheck="false"
@@ -132,7 +138,7 @@
 		<button
 			type="button"
 			class="absolute top-2 right-2 rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700 focus:outline-none"
-			on:click={formatJson}
+			onclick={formatJson}
 		>
 			Format
 		</button>
@@ -146,10 +152,3 @@
 		{/if}
 	</div>
 </div>
-
-<style>
-	.errorLine {
-		color: #c53030;
-		background: #fff5f5;
-	}
-</style>

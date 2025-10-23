@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, createEventDispatcher } from 'svelte';
+	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import type { JSONValue, JSONObject, SearchMatch, UndoEntry } from '$lib/types.ts';
 	import TableView from './TableView.svelte';
@@ -7,23 +7,27 @@
 	import TextView from './TextView.svelte';
 	import SearchPanel from './SearchPanel.svelte';
 
-	const dispatch = createEventDispatcher<{
-		formatted: string;
-		selectAll: void;
-	}>();
+	let {
+		formatted,
+		selectAll,
+		searchQuery = $bindable()
+	}: {
+		formatted?: (text: string) => string;
+		selectAll?: () => void;
+		searchQuery?: string;
+	} = $props();
 
 	let currentData: JSONValue = {} as JSONObject;
 	let originalData: JSONValue = {} as JSONObject;
-	let focusedPath: Array<string | number> = [];
-	let fileName = 'untitled.json';
-	let viewMode: 'tree' | 'table' | 'text' = 'tree';
-	export let searchQuery = '';
-	let searchResults: SearchMatch[] = [];
-	let isModified = false;
+	let focusedPath: Array<string | number> = $state([]);
+	let fileName = $state('untitled.json');
+	let viewMode: 'tree' | 'table' | 'text' = $state('tree');
+	let searchResults: SearchMatch[] = $state([]);
+	let isModified = $state(false);
 	let undoStack: UndoEntry[] = [];
 	let redoStack: UndoEntry[] = [];
 
-	let filteredData: JSONValue = {} as JSONObject;
+	let filteredData: JSONValue = $state({} as JSONObject);
 	let searchIndex: Map<string, SearchMatch[]> = new Map();
 
 	const MAX_UNDO_STACK = 50;
@@ -186,8 +190,8 @@
 
 	const formatJson = (): void => {
 		try {
-			const formatted = JSON.stringify(filteredData, null, 2);
-			dispatch('formatted', formatted);
+			const formattedText = JSON.stringify(filteredData, null, 2);
+			if (formatted) formatted(formattedText);
 		} catch (e) {
 			alert('JSON formatting error');
 		}
@@ -209,7 +213,7 @@
 		const handleUndo = (): void => undo();
 		const handleRedo = (): void => redo();
 		const handleSelectAll = (): void => {
-			dispatch('selectAll');
+			if (selectAll) selectAll();
 		};
 
 		window.addEventListener('editor:save', handleSave as EventListener);
@@ -225,7 +229,7 @@
 		};
 	});
 
-	$: validation = validateJson();
+	const validation = $derived(validateJson());
 </script>
 
 <div class="flex h-full">
@@ -248,7 +252,7 @@
 					class="rounded-md px-3 py-2 text-xs font-medium {viewMode === 'tree'
 						? 'bg-blue-100 text-blue-700'
 						: 'text-gray-500 hover:text-gray-700'}"
-					on:click={() => (viewMode = 'tree')}
+					onclick={() => (viewMode = 'tree')}
 				>
 					Tree
 				</button>
@@ -256,7 +260,7 @@
 					class="rounded-md px-3 py-2 text-xs font-medium {viewMode === 'table'
 						? 'bg-blue-100 text-blue-700'
 						: 'text-gray-500 hover:text-gray-700'}"
-					on:click={() => (viewMode = 'table')}
+					onclick={() => (viewMode = 'table')}
 				>
 					Table
 				</button>
@@ -264,7 +268,7 @@
 					class="rounded-md px-3 py-2 text-xs font-medium {viewMode === 'text'
 						? 'bg-blue-100 text-blue-700'
 						: 'text-gray-500 hover:text-gray-700'}"
-					on:click={() => (viewMode = 'text')}
+					onclick={() => (viewMode = 'text')}
 				>
 					Text
 				</button>
@@ -274,21 +278,20 @@
 		<SearchPanel
 			bind:searchQuery
 			{searchResults}
-			on:search={(e: CustomEvent<{ query: string; keyFilter: string | null }>) =>
-				performSearch(e.detail.query, e.detail.keyFilter)}
-			on:navigate={(e: CustomEvent<{ path: Array<string | number> }>) => focusOnPath(e.detail.path)}
+			search={(e: { query: string | undefined; keyFilter: string | null }) => performSearch(e.query ?? '', e.keyFilter)}
+			navigate={(e: { path: Array<string | number> }) => focusOnPath(e.path)}
 		/>
 
 		{#if focusedPath.length > 0}
 			<div class="border-b border-gray-200 bg-white p-3">
 				<div class="mb-2 text-xs font-medium text-gray-700">Navigation</div>
-				<button class="w-full text-left text-xs text-blue-600 hover:text-blue-800" on:click={() => focusOnPath([])}>
+				<button class="w-full text-left text-xs text-blue-600 hover:text-blue-800" onclick={() => focusOnPath([])}>
 					← Back to root
 				</button>
 				{#if focusedPath.length > 1}
 					<button
 						class="mt-1 w-full text-left text-xs text-blue-600 hover:text-blue-800"
-						on:click={() => focusOnPath(focusedPath.slice(0, -1))}
+						onclick={() => focusOnPath(focusedPath.slice(0, -1))}
 					>
 						← Back to parent
 					</button>
@@ -299,7 +302,7 @@
 		<div class="space-y-2 p-3">
 			<button
 				class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
-				on:click={formatJson}
+				onclick={formatJson}
 			>
 				Format JSON
 			</button>
@@ -313,19 +316,18 @@
 		{#if viewMode === 'tree'}
 			<TreeView
 				data={filteredData}
-				{searchResults}
-				on:update={(e: CustomEvent<JSONValue>) => updateData(e.detail)}
-				on:focus={(e: CustomEvent<Array<string | number>>) => focusOnPath([...focusedPath, ...e.detail])}
+				update={(e: JSONValue) => updateData(e)}
+				focus={(e: Array<string | number>) => focusOnPath([...focusedPath, ...e])}
 			/>
 		{:else if viewMode === 'table'}
 			<TableView
 				data={filteredData}
 				{searchResults}
-				on:update={(e: CustomEvent<JSONValue>) => updateData(e.detail)}
-				on:focus={(e: CustomEvent<Array<string | number>>) => focusOnPath([...focusedPath, ...e.detail])}
+				update={(e: JSONValue) => updateData(e)}
+				focus={(e: Array<string | number>) => focusOnPath([...focusedPath, ...e])}
 			/>
 		{:else if viewMode === 'text'}
-			<TextView data={filteredData} on:update={(e: CustomEvent<JSONValue>) => updateData(e.detail)} />
+			<TextView data={filteredData} update={(e: JSONValue) => updateData(e)} />
 		{/if}
 	</div>
 </div>

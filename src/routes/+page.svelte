@@ -63,14 +63,14 @@
 			<h1 class="text-xl font-semibold text-gray-900">JSON Editor</h1>
 			<div class="flex items-center space-x-3">
 				<button
-					on:click={() => fileInput?.click()}
+					onclick={() => fileInput?.click()}
 					class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm leading-4 font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 					type="button"
 				>
 					Open File
 				</button>
 				<button
-					on:click={createNewFile}
+					onclick={createNewFile}
 					class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-2 text-sm leading-4 font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
 					type="button"
 				>
@@ -80,7 +80,7 @@
 					bind:this={fileInput}
 					type="file"
 					accept=".json,application/json"
-					on:change={handleFileUpload}
+					onchange={handleFileUpload}
 					class="hidden"
 				/>
 			</div>

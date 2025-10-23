@@ -1,32 +1,37 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import type { JSONPath, SearchMatch } from '$lib/types.ts';
 
-	const dispatch = createEventDispatcher<{
-		search: { query: string; keyFilter: string | null };
-		navigate: { path: JSONPath };
-	}>();
+	let {
+		search,
+		navigate,
+		searchQuery = $bindable(),
+		searchResults = []
+	}: {
+		search: (e: { query: string | undefined; keyFilter: string | null }) => void;
+		navigate: (e: { path: JSONPath }) => void;
+		searchQuery: string | undefined;
+		searchResults: SearchMatch[];
+	} = $props();
 
-	export let searchQuery: string = '';
-	export let searchResults: SearchMatch[] = [];
-
-	let keyFilter: string = '';
-	let showAdvanced = false;
+	let keyFilter: string = $state('');
+	let showAdvanced = $state(false);
 
 	const handleSearch = (): void => {
-		dispatch('search', {
+		search({
 			query: searchQuery,
 			keyFilter: keyFilter.trim() || null
 		});
 	};
 
 	const navigateToResult = (result: SearchMatch): void => {
-		dispatch('navigate', { path: result.path });
+		navigate({ path: result.path });
 	};
 
-	$: if (searchQuery) {
-		handleSearch();
-	}
+	$effect(() => {
+		if (searchQuery) {
+			handleSearch();
+		}
+	});
 </script>
 
 <div class="flex-1 overflow-y-auto border-b border-gray-200 bg-white p-3">
@@ -38,7 +43,7 @@
 		class="w-full rounded-md border border-gray-300 px-3 py-2 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 	/>
 
-	<button class="mt-2 text-xs text-blue-600 hover:text-blue-800" on:click={() => (showAdvanced = !showAdvanced)}>
+	<button class="mt-2 text-xs text-blue-600 hover:text-blue-800" onclick={() => (showAdvanced = !showAdvanced)}>
 		{showAdvanced ? 'Hide' : 'Show'} Advanced
 	</button>
 
@@ -62,7 +67,7 @@
 				{#each searchResults as result}
 					<button
 						class="w-full rounded border bg-gray-50 p-2 text-left text-xs hover:bg-gray-100"
-						on:click={() => navigateToResult(result)}
+						onclick={() => navigateToResult(result)}
 					>
 						<div class="font-medium text-gray-900">{result.key}</div>
 						<div class="truncate text-gray-600">{result.value}</div>

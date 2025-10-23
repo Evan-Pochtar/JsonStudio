@@ -1,17 +1,19 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import type { TableRow, JSONValue, JSONPath } from '$lib/types.ts';
 
-	const dispatch = createEventDispatcher<{
-		update: JSONValue;
-		focus: JSONPath;
-	}>();
+	let {
+		focus,
+		update,
+		data = {}
+	}: {
+		focus: (e: JSONPath) => void;
+		update: (e: JSONValue) => void;
+		data: JSONValue;
+		searchResults: Array<{ path: JSONPath; key: string; value: any; type: string }>;
+	} = $props();
 
-	export let data: JSONValue = {};
-	export const searchResults: Array<{ path: JSONPath; key: string; value: any; type: string }> = [];
-
-	let sortKey: string = '';
-	let sortDirection: 'asc' | 'desc' = 'asc';
+	let sortKey: string = $state('');
+	let sortDirection: 'asc' | 'desc' = $state('asc');
 
 	const flattenForTable = (obj: JSONValue, prefix = ''): TableRow[] => {
 		const items: TableRow[] = [];
@@ -66,11 +68,11 @@
 		} catch {
 			current[path[path.length - 1] as keyof typeof current] = newValue;
 		}
-		dispatch('update', newData);
+		update(newData);
 	};
 
 	const handleDoubleClick = (path: JSONPath): void => {
-		dispatch('focus', path);
+		focus(path);
 	};
 
 	const sortData = (items: TableRow[], key: string, direction: 'asc' | 'desc'): TableRow[] => {
@@ -82,9 +84,9 @@
 		});
 	};
 
-	$: tableData = flattenForTable(data);
-	$: columns = tableData.length > 0 ? Object.keys(tableData[0]).filter((k) => k !== 'path') : [];
-	$: sortedData = sortKey ? sortData(tableData, sortKey, sortDirection) : tableData;
+	const tableData = $derived(flattenForTable(data));
+	const columns = $derived(tableData.length > 0 ? Object.keys(tableData[0]).filter((k) => k !== 'path') : []);
+	const sortedData = $derived(sortKey ? sortData(tableData, sortKey, sortDirection) : tableData);
 </script>
 
 <div class="h-full overflow-auto">
@@ -96,7 +98,7 @@
 						<th class="border-b px-4 py-2 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
 							<button
 								class="flex items-center space-x-1 hover:text-gray-700"
-								on:click={() => {
+								onclick={() => {
 									if (sortKey === column) {
 										sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
 									} else {
@@ -122,14 +124,14 @@
 								{#if column === 'key'}
 									<button
 										class="font-medium text-blue-600 hover:text-blue-800"
-										on:dblclick={() => handleDoubleClick(row.path)}
+										ondblclick={() => handleDoubleClick(row.path)}
 									>
 										{row[column]}
 									</button>
 								{:else}
 									<input
 										value={typeof row[column] === 'object' ? JSON.stringify(row[column]) : (row[column] ?? '')}
-										on:change={(e: Event) => updateValue(row.path, (e.target as HTMLInputElement).value)}
+										onchange={(e: Event) => updateValue(row.path, (e.target as HTMLInputElement).value)}
 										class="w-full rounded border-0 bg-transparent px-1 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 									/>
 								{/if}
