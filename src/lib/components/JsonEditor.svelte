@@ -6,6 +6,9 @@
 	import TreeView from './TreeView.svelte';
 	import TextView from './TextView.svelte';
 	import SearchPanel from './SearchPanel.svelte';
+	import ExportPopup from './ExportPopup.svelte';
+	import FormatPopup from './FormatPopup.svelte';
+	import SortPopup from './SortPopup.svelte';
 
 	let {
 		formatted,
@@ -17,8 +20,11 @@
 		searchQuery?: string;
 	} = $props();
 
+	let showExportPopup = $state(false);
+	let showFormatPopup = $state(false);
+	let showSortPopup = $state(false);
+
 	let currentData: JSONValue = {} as JSONObject;
-	let originalData: JSONValue = {} as JSONObject;
 	let focusedPath: Array<string | number> = $state([]);
 	let fileName = $state('untitled.json');
 	let viewMode: 'tree' | 'table' | 'text' = $state('tree');
@@ -33,7 +39,6 @@
 	const MAX_UNDO_STACK = 50;
 
 	export const loadJson = (data: JSONValue, name = 'untitled.json'): void => {
-		originalData = structuredClone(data);
 		currentData = structuredClone(data);
 		fileName = name;
 		focusedPath = [];
@@ -91,20 +96,6 @@
 		isModified = true;
 		updateFilteredData();
 		buildSearchIndex();
-		void saveToServer();
-	};
-
-	const saveToServer = async (): Promise<void> => {
-		if (!browser) return;
-		try {
-			await fetch('/api/save', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ data: currentData, fileName })
-			});
-		} catch (e) {
-			console.error('Save failed:', e);
-		}
 	};
 
 	const buildSearchIndex = (): void => {
@@ -188,13 +179,25 @@
 		updateFilteredData();
 	};
 
-	const formatJson = (): void => {
+	const handleFormatted = (formattedText: string): void => {
 		try {
-			const formattedText = JSON.stringify(filteredData, null, 2);
-			if (formatted) formatted(formattedText);
+			const parsed = JSON.parse(formattedText);
+			addToUndoStack();
+			currentData = parsed;
+			isModified = true;
+			updateFilteredData();
+			buildSearchIndex();
 		} catch (e) {
-			alert('JSON formatting error');
+			console.error('Format error:', e);
 		}
+	};
+
+	const handleSorted = (sortedData: JSONValue): void => {
+		addToUndoStack();
+		currentData = sortedData;
+		isModified = true;
+		updateFilteredData();
+		buildSearchIndex();
 	};
 
 	const validateJson = (): { valid: true } | { valid: false; error: string } => {
@@ -208,21 +211,17 @@
 
 	onMount(() => {
 		if (!browser) return;
-
-		const handleSave = (): void => void saveToServer();
 		const handleUndo = (): void => undo();
 		const handleRedo = (): void => redo();
 		const handleSelectAll = (): void => {
 			if (selectAll) selectAll();
 		};
 
-		window.addEventListener('editor:save', handleSave as EventListener);
 		window.addEventListener('editor:undo', handleUndo as EventListener);
 		window.addEventListener('editor:redo', handleRedo as EventListener);
 		window.addEventListener('editor:selectall', handleSelectAll as EventListener);
 
 		return () => {
-			window.removeEventListener('editor:save', handleSave as EventListener);
 			window.removeEventListener('editor:undo', handleUndo as EventListener);
 			window.removeEventListener('editor:redo', handleRedo as EventListener);
 			window.removeEventListener('editor:selectall', handleSelectAll as EventListener);
@@ -302,9 +301,24 @@
 		<div class="space-y-2 p-3">
 			<button
 				class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
-				onclick={formatJson}
+				onclick={() => (showFormatPopup = true)}
+				type="button"
 			>
 				Format JSON
+			</button>
+			<button
+				class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+				onclick={() => (showSortPopup = true)}
+				type="button"
+			>
+				Sort Data
+			</button>
+			<button
+				class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-blue-600 hover:bg-blue-50"
+				onclick={() => (showExportPopup = true)}
+				type="button"
+			>
+				Download / Export
 			</button>
 			<div class="text-xs {validation.valid ? 'text-green-600' : 'text-red-600'}">
 				{validation.valid ? '✓ Valid JSON' : `✗ ${validation.error}`}
@@ -330,4 +344,15 @@
 			<TextView data={filteredData} update={(e: JSONValue) => updateData(e)} />
 		{/if}
 	</div>
+	{#if showExportPopup}
+		<ExportPopup data={filteredData} {fileName} onClose={() => (showExportPopup = false)} />
+	{/if}
+
+	{#if showFormatPopup}
+		<FormatPopup data={filteredData} onFormat={handleFormatted} onClose={() => (showFormatPopup = false)} />
+	{/if}
+
+	{#if showSortPopup}
+		<SortPopup data={filteredData} onSort={handleSorted} onClose={() => (showSortPopup = false)} />
+	{/if}
 </div>

@@ -11,14 +11,18 @@
 		data: JSONValue;
 	} = $props();
 
-	let expandedNodes = new Set<string>();
+	let expandedNodes = $state(new Set<string>());
 
 	const pathToKey = (path: JSONPath): string => path.map(String).join('.');
 	const toggleNode = (path: JSONPath): void => {
 		const k = pathToKey(path);
-		if (expandedNodes.has(k)) expandedNodes.delete(k);
-		else expandedNodes.add(k);
-		expandedNodes = new Set(expandedNodes);
+		const newSet = new Set(expandedNodes);
+		if (newSet.has(k)) {
+			newSet.delete(k);
+		} else {
+			newSet.add(k);
+		}
+		expandedNodes = newSet;
 	};
 
 	const isExpanded = (path: JSONPath): boolean => expandedNodes.has(pathToKey(path));
@@ -89,10 +93,10 @@
 <div class="h-full overflow-auto bg-white p-4">
 	<div class="font-mono text-sm">
 		{#each visibleNodes as node (pathToKey(node.path))}
-			<div class="flex items-center" style="margin-left: {node.depth * 1}rem;">
+			<div class="group flex items-center hover:bg-gray-50" style="padding-left: {node.depth * 1}rem;">
 				{#if node.hasChildren}
 					<button
-						class="mr-2 text-gray-400 hover:text-gray-600"
+						class="mr-2 flex h-5 w-5 shrink-0 items-center justify-center text-gray-400 hover:text-gray-600"
 						onclick={() => toggleNode(node.path)}
 						aria-expanded={isExpanded(node.path)}
 						type="button"
@@ -100,41 +104,43 @@
 						{isExpanded(node.path) ? '▼' : '▶'}
 					</button>
 				{:else}
-					<div class="mr-2 w-5"></div>
+					<div class="mr-2 h-5 w-5 shrink-0"></div>
 				{/if}
 
-				<div class="flex-1">
-					<div class="group flex items-center">
-						<span
-							class="cursor-pointer rounded px-1 font-semibold text-blue-600 hover:bg-blue-50"
-							ondblclick={() => handleDoubleClick(node.path)}
-							role="button"
-							tabindex="0"
-						>
-							{node.key !== null ? node.key : 'root'}
-							{#if node.isArray}
-								<span>{'[]'}</span>
-							{:else if node.isObject}
-								<span>{'{}'}</span>
-							{/if}
-						</span>
-						<span class="ml-2 text-xs text-gray-500">
-							{#if node.isArray}
-								{node.childCount} items
-							{:else if node.isObject}
-								{node.childCount} props
-							{:else}
-								<span class="text-gray-600"
-									>{typeof node.value === 'string' ? `"${node.value}"` : String(node.value)}</span
-								>
-							{/if}
-						</span>
-					</div>
+				<div class="flex flex-1 items-center py-1">
+					<span
+						class="cursor-pointer rounded px-1 font-semibold text-blue-600 hover:bg-blue-50"
+						ondblclick={() => handleDoubleClick(node.path)}
+						role="button"
+						tabindex="0"
+					>
+						{node.key !== null ? node.key : 'root'}
+						{#if node.isArray}
+							<span>{'[]'}</span>
+						{:else if node.isObject}
+							<span>{'{}'}</span>
+						{/if}
+					</span>
+					<span class="ml-2 text-xs text-gray-500">
+						{#if node.isArray}
+							{node.childCount} items
+						{:else if node.isObject}
+							{node.childCount} props
+						{:else}
+							<span class="text-gray-600"
+								>{typeof node.value === 'string' ? `"${node.value}"` : String(node.value)}</span
+							>
+						{/if}
+					</span>
 				</div>
 
-				<div class="ml-2 opacity-0 group-hover:opacity-100">
-					<button class="mr-2 text-xs text-blue-600" onclick={() => focus(node.path)} type="button"> Open </button>
-					<button class="text-xs text-red-500" onclick={() => deleteItem(node.path)} type="button"> x </button>
+				<div class="ml-2 shrink-0 opacity-0 group-hover:opacity-100">
+					<button class="mr-2 text-xs text-blue-600 hover:underline" onclick={() => focus(node.path)} type="button">
+						Open
+					</button>
+					<button class="text-xs text-red-500 hover:underline" onclick={() => deleteItem(node.path)} type="button">
+						Delete
+					</button>
 				</div>
 			</div>
 		{/each}
