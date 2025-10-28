@@ -41,17 +41,18 @@
 	};
 </script>
 
-<dialog
-	class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black"
+<div
+	class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+	role="dialog"
 	onclick={onClose}
 	onkeydown={(e) => e.key === 'Escape' && onClose()}
-	aria-modal="true"
-	open
+	tabindex="-1"
 >
 	<div
-		class="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl"
-		onclick={(e) => e.stopPropagation()}
+		class="animate-in fade-in zoom-in-95 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl ring-1 ring-gray-200 duration-200"
 		role="presentation"
+		onclick={(e) => e.stopPropagation()}
+		onkeydown={() => {}}
 	>
 		<h2 class="mb-4 text-lg font-semibold text-gray-900">Format JSON</h2>
 
@@ -84,18 +85,18 @@
 		<div class="flex justify-end space-x-3">
 			<button
 				onclick={onClose}
-				class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+				class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow"
 				type="button"
 			>
 				Cancel
 			</button>
 			<button
 				onclick={applyFormat}
-				class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+				class="rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-md"
 				type="button"
 			>
 				Apply Format
 			</button>
 		</div>
 	</div>
-</dialog>
+</div>

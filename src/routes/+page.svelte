@@ -58,22 +58,47 @@
 </script>
 
 <div class="flex h-screen flex-col bg-white">
-	<header class="border-b border-gray-200 bg-white px-6 py-3">
+	<header class="border-b border-gray-200/80 bg-white/95 px-6 py-4 shadow-sm backdrop-blur-sm">
 		<div class="flex items-center justify-between">
-			<h1 class="text-xl font-semibold text-gray-900">JSON Editor</h1>
 			<div class="flex items-center space-x-3">
+				<div
+					class="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shadow-sm"
+				>
+					<svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+						/>
+					</svg>
+				</div>
+				<h1 class="text-xl font-semibold text-gray-900">JSON Editor</h1>
+			</div>
+			<div class="flex items-center space-x-2">
 				<button
 					onclick={() => fileInput?.click()}
-					class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm leading-4 font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+					class="inline-flex items-center rounded-lg border border-transparent bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-md focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:outline-none"
 					type="button"
 				>
+					<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+						/>
+					</svg>
 					Open File
 				</button>
 				<button
 					onclick={createNewFile}
-					class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-2 text-sm leading-4 font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+					class="inline-flex items-center rounded-lg border border-transparent bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-md focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:outline-none"
 					type="button"
 				>
+					<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+					</svg>
 					New File
 				</button>
 				<input

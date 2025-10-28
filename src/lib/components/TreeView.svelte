@@ -90,55 +90,75 @@
 	const visibleNodes = $derived(buildVisibleNodes());
 </script>
 
-<div class="h-full overflow-auto bg-white p-4">
+<div class="h-full overflow-auto bg-gradient-to-b from-white to-gray-50/30 p-4">
 	<div class="font-mono text-sm">
 		{#each visibleNodes as node (pathToKey(node.path))}
-			<div class="group flex items-center hover:bg-gray-50" style="padding-left: {node.depth * 1}rem;">
+			<div
+				class="group flex items-center rounded-lg transition-all duration-150 hover:bg-blue-50/50"
+				style="padding-left: {node.depth * 1}rem;"
+			>
 				{#if node.hasChildren}
 					<button
-						class="mr-2 flex h-5 w-5 shrink-0 items-center justify-center text-gray-400 hover:text-gray-600"
+						class="mr-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-gray-400 transition-all duration-200 hover:bg-blue-100 hover:text-blue-600"
 						onclick={() => toggleNode(node.path)}
 						aria-expanded={isExpanded(node.path)}
 						type="button"
+						aria-label={isExpanded(node.path) ? 'Collapse node' : 'Expand node'}
+						title={isExpanded(node.path) ? 'Collapse node' : 'Expand node'}
 					>
-						{isExpanded(node.path) ? '▼' : '▶'}
+						<svg
+							class="h-3 w-3 transition-transform duration-200 {isExpanded(node.path) ? 'rotate-90' : ''}"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+						</svg>
 					</button>
 				{:else}
-					<div class="mr-2 h-5 w-5 shrink-0"></div>
+					<div class="mr-2 h-6 w-6 shrink-0"></div>
 				{/if}
 
-				<div class="flex flex-1 items-center py-1">
+				<div class="flex flex-1 items-center py-1.5">
 					<span
-						class="cursor-pointer rounded px-1 font-semibold text-blue-600 hover:bg-blue-50"
+						class="cursor-pointer rounded-md px-2 py-1 font-semibold text-blue-600 transition-all duration-200 hover:bg-blue-100"
 						ondblclick={() => handleDoubleClick(node.path)}
 						role="button"
 						tabindex="0"
 					>
 						{node.key !== null ? node.key : 'root'}
 						{#if node.isArray}
-							<span>{'[]'}</span>
+							<span class="text-purple-600">[]</span>
 						{:else if node.isObject}
-							<span>{'{}'}</span>
+							<span class="text-purple-600">{'{}'}</span>
 						{/if}
 					</span>
-					<span class="ml-2 text-xs text-gray-500">
+					<span class="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
 						{#if node.isArray}
 							{node.childCount} items
 						{:else if node.isObject}
 							{node.childCount} props
 						{:else}
-							<span class="text-gray-600"
+							<span class="text-gray-700"
 								>{typeof node.value === 'string' ? `"${node.value}"` : String(node.value)}</span
 							>
 						{/if}
 					</span>
 				</div>
 
-				<div class="ml-2 shrink-0 opacity-0 group-hover:opacity-100">
-					<button class="mr-2 text-xs text-blue-600 hover:underline" onclick={() => focus(node.path)} type="button">
+				<div class="ml-2 flex shrink-0 space-x-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+					<button
+						class="rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 transition-all duration-200 hover:bg-blue-200"
+						onclick={() => focus(node.path)}
+						type="button"
+					>
 						Open
 					</button>
-					<button class="text-xs text-red-500 hover:underline" onclick={() => deleteItem(node.path)} type="button">
+					<button
+						class="rounded-md bg-red-100 px-2 py-1 text-xs font-medium text-red-700 transition-all duration-200 hover:bg-red-200"
+						onclick={() => deleteItem(node.path)}
+						type="button"
+					>
 						Delete
 					</button>
 				</div>

@@ -137,17 +137,30 @@
 
 		<button
 			type="button"
-			class="absolute top-2 right-2 rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700 focus:outline-none"
+			class="absolute top-3 right-3 flex items-center space-x-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-xs font-medium text-white shadow-sm transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-md focus:outline-none"
 			onclick={formatJson}
 		>
-			Format
+			<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+			</svg>
+			<span>Format</span>
 		</button>
 
 		{#if errorLine}
 			<div
-				class="absolute right-4 bottom-2 left-4 rounded border border-red-300 bg-red-100 px-3 py-2 text-sm text-red-700"
+				class="animate-in slide-in-from-bottom-2 fade-in absolute right-4 bottom-4 left-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 shadow-lg duration-300"
 			>
-				JSON syntax error on line {errorLine}
+				<div class="flex items-center space-x-2">
+					<svg class="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
+					<span class="text-sm font-medium text-red-800">JSON syntax error on line {errorLine}</span>
+				</div>
 			</div>
 		{/if}
 	</div>

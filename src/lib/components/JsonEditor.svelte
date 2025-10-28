@@ -11,11 +11,9 @@
 	import SortPopup from './SortPopup.svelte';
 
 	let {
-		formatted,
 		selectAll,
 		searchQuery = $bindable()
 	}: {
-		formatted?: (text: string) => string;
 		selectAll?: () => void;
 		searchQuery?: string;
 	} = $props();
@@ -232,41 +230,62 @@
 </script>
 
 <div class="flex h-full">
-	<div class="flex w-80 flex-col border-r border-gray-200 bg-gray-50">
-		<div class="border-b border-gray-200 bg-white p-4">
+	<div class="flex w-80 flex-col border-r border-gray-200/80 bg-gradient-to-b from-gray-50 to-gray-100/50">
+		<div class="border-b border-gray-200/80 bg-white/95 p-4 shadow-sm backdrop-blur-sm">
 			<div class="flex items-center justify-between">
-				<span class="text-sm font-medium text-gray-900">{fileName}</span>
+				<div class="flex items-center space-x-2">
+					<svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+						/>
+					</svg>
+					<span class="text-sm font-medium text-gray-900">{fileName}</span>
+				</div>
 				{#if isModified}
-					<span class="text-xs text-orange-600">Modified</span>
+					<span
+						class="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700 ring-1 ring-orange-600/20 ring-inset"
+						>Modified</span
+					>
 				{/if}
 			</div>
-			<div class="mt-1 text-xs text-gray-500">
-				{focusedPath.length > 0 ? `Focused: ${focusedPath.join('.')}` : 'Root level'}
+			<div class="mt-2 flex items-center space-x-1.5 text-xs text-gray-500">
+				<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+					/>
+				</svg>
+				<span>{focusedPath.length > 0 ? `${focusedPath.join('.')}` : 'Root level'}</span>
 			</div>
 		</div>
 
-		<div class="border-b border-gray-200 bg-white p-3">
-			<div class="grid grid-cols-3 gap-1">
+		<div class="border-b border-gray-200/80 bg-white/95 p-3 shadow-sm backdrop-blur-sm">
+			<div class="inline-flex w-full rounded-lg bg-gray-100 p-1">
 				<button
-					class="rounded-md px-3 py-2 text-xs font-medium {viewMode === 'tree'
-						? 'bg-blue-100 text-blue-700'
-						: 'text-gray-500 hover:text-gray-700'}"
+					class="flex-1 rounded-md px-3 py-2 text-xs font-medium transition-all duration-200 {viewMode === 'tree'
+						? 'bg-white text-blue-600 shadow-sm'
+						: 'text-gray-600 hover:text-gray-900'}"
 					onclick={() => (viewMode = 'tree')}
 				>
 					Tree
 				</button>
 				<button
-					class="rounded-md px-3 py-2 text-xs font-medium {viewMode === 'table'
-						? 'bg-blue-100 text-blue-700'
-						: 'text-gray-500 hover:text-gray-700'}"
+					class="flex-1 rounded-md px-3 py-2 text-xs font-medium transition-all duration-200 {viewMode === 'table'
+						? 'bg-white text-blue-600 shadow-sm'
+						: 'text-gray-600 hover:text-gray-900'}"
 					onclick={() => (viewMode = 'table')}
 				>
 					Table
 				</button>
 				<button
-					class="rounded-md px-3 py-2 text-xs font-medium {viewMode === 'text'
-						? 'bg-blue-100 text-blue-700'
-						: 'text-gray-500 hover:text-gray-700'}"
+					class="flex-1 rounded-md px-3 py-2 text-xs font-medium transition-all duration-200 {viewMode === 'text'
+						? 'bg-white text-blue-600 shadow-sm'
+						: 'text-gray-600 hover:text-gray-900'}"
 					onclick={() => (viewMode = 'text')}
 				>
 					Text
@@ -282,46 +301,129 @@
 		/>
 
 		{#if focusedPath.length > 0}
-			<div class="border-b border-gray-200 bg-white p-3">
+			<div class="border-b border-gray-200/80 bg-white/95 p-3 shadow-sm backdrop-blur-sm">
 				<div class="mb-2 text-xs font-medium text-gray-700">Navigation</div>
-				<button class="w-full text-left text-xs text-blue-600 hover:text-blue-800" onclick={() => focusOnPath([])}>
-					← Back to root
-				</button>
-				{#if focusedPath.length > 1}
+				<div class="space-y-1.5">
 					<button
-						class="mt-1 w-full text-left text-xs text-blue-600 hover:text-blue-800"
-						onclick={() => focusOnPath(focusedPath.slice(0, -1))}
+						class="group flex w-full items-center space-x-2 rounded-lg px-3 py-2 text-left text-xs text-gray-700 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700"
+						onclick={() => focusOnPath([])}
 					>
-						← Back to parent
+						<svg
+							class="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+						</svg>
+						<span>Back to root</span>
 					</button>
-				{/if}
+					{#if focusedPath.length > 1}
+						<button
+							class="group flex w-full items-center space-x-2 rounded-lg px-3 py-2 text-left text-xs text-gray-700 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700"
+							onclick={() => focusOnPath(focusedPath.slice(0, -1))}
+						>
+							<svg
+								class="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+							</svg>
+							<span>Back to parent</span>
+						</button>
+					{/if}
+				</div>
 			</div>
 		{/if}
 
-		<div class="space-y-2 p-3">
+		<div class="space-y-2 p-4">
 			<button
-				class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+				class="group flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:outline-none"
 				onclick={() => (showFormatPopup = true)}
 				type="button"
 			>
-				Format JSON
+				<svg
+					class="h-4 w-4 transition-transform group-hover:scale-110"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+				</svg>
+				<span>Format JSON</span>
 			</button>
 			<button
-				class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+				class="group flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:outline-none"
 				onclick={() => (showSortPopup = true)}
 				type="button"
 			>
-				Sort Data
+				<svg
+					class="h-4 w-4 transition-transform group-hover:scale-110"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
+					/>
+				</svg>
+				<span>Sort Data</span>
 			</button>
 			<button
-				class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-blue-600 hover:bg-blue-50"
+				class="group flex w-full items-center justify-center space-x-2 rounded-lg border border-transparent bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2.5 text-xs font-medium text-white shadow-sm transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-md focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:outline-none"
 				onclick={() => (showExportPopup = true)}
 				type="button"
 			>
-				Download / Export
+				<svg
+					class="h-4 w-4 transition-transform group-hover:scale-110"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+					/>
+				</svg>
+				<span>Download / Export</span>
 			</button>
-			<div class="text-xs {validation.valid ? 'text-green-600' : 'text-red-600'}">
-				{validation.valid ? '✓ Valid JSON' : `✗ ${validation.error}`}
+			<div
+				class="mt-4 flex items-center justify-center space-x-2 rounded-lg bg-white px-3 py-2 shadow-sm ring-1 ring-inset {validation.valid
+					? 'ring-green-600/20'
+					: 'ring-red-600/20'}"
+			>
+				<svg
+					class="h-4 w-4 {validation.valid ? 'text-green-600' : 'text-red-600'}"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					{#if validation.valid}
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					{:else}
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					{/if}
+				</svg>
+				<span class="text-xs font-medium {validation.valid ? 'text-green-700' : 'text-red-700'}">
+					{validation.valid ? 'Valid JSON' : validation.error}
+				</span>
 			</div>
 		</div>
 	</div>

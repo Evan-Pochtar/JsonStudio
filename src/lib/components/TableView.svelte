@@ -92,12 +92,14 @@
 <div class="h-full overflow-auto">
 	{#if columns.length > 0}
 		<table class="w-full">
-			<thead class="sticky top-0 bg-gray-50">
+			<thead class="sticky top-0 bg-gradient-to-b from-gray-50 to-gray-100 shadow-sm">
 				<tr>
 					{#each columns as column}
-						<th class="border-b px-4 py-2 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+						<th
+							class="border-b-2 border-gray-200 px-4 py-3 text-left text-xs font-semibold tracking-wider text-gray-700 uppercase"
+						>
 							<button
-								class="flex items-center space-x-1 hover:text-gray-700"
+								class="flex items-center space-x-2 transition-colors hover:text-gray-900"
 								onclick={() => {
 									if (sortKey === column) {
 										sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
@@ -109,7 +111,16 @@
 							>
 								<span>{column}</span>
 								{#if sortKey === column}
-									<span class="text-blue-600">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+									<svg
+										class="h-3.5 w-3.5 text-blue-600 transition-transform {sortDirection === 'desc'
+											? 'rotate-180'
+											: ''}"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+									</svg>
 								{/if}
 							</button>
 						</th>
@@ -118,12 +129,12 @@
 			</thead>
 			<tbody class="divide-y divide-gray-200 bg-white">
 				{#each sortedData as row, index}
-					<tr class="hover:bg-gray-50">
+					<tr class="transition-colors duration-150 hover:bg-blue-50/30">
 						{#each columns as column}
-							<td class="border-r px-4 py-2 text-sm text-gray-900">
+							<td class="border-r border-gray-100 px-4 py-3 text-sm text-gray-900">
 								{#if column === 'key'}
 									<button
-										class="font-medium text-blue-600 hover:text-blue-800"
+										class="rounded-md px-2 py-1 font-medium text-blue-600 transition-all duration-200 hover:bg-blue-100"
 										ondblclick={() => handleDoubleClick(row.path)}
 									>
 										{row[column]}
@@ -132,7 +143,7 @@
 									<input
 										value={typeof row[column] === 'object' ? JSON.stringify(row[column]) : (row[column] ?? '')}
 										onchange={(e: Event) => updateValue(row.path, (e.target as HTMLInputElement).value)}
-										class="w-full rounded border-0 bg-transparent px-1 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+										class="w-full rounded-md border-0 bg-transparent px-2 py-1 transition-all duration-200 hover:bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
 									/>
 								{/if}
 							</td>

@@ -110,15 +110,15 @@
 
 		const headerRow = `<Row>${headers.map((h) => `<Cell><Data ss:Type="String">${h}</Data></Cell>`).join('')}</Row>`;
 		const xml = `<?xml version="1.0"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-<Worksheet ss:Name="Sheet1">
-<Table>
-${headerRow}
-${xmlRows.join('\n')}
-</Table>
-</Worksheet>
-</Workbook>`;
+								<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+								xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+								<Worksheet ss:Name="Sheet1">
+								<Table>
+								${headerRow}
+								${xmlRows.join('\n')}
+								</Table>
+								</Worksheet>
+								</Workbook>`;
 
 		return new Blob([xml], { type: 'application/vnd.ms-excel' });
 	};
@@ -141,14 +141,14 @@ ${xmlRows.join('\n')}
 </script>
 
 <div
-	class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black"
+	class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
 	role="dialog"
 	onclick={onClose}
 	onkeydown={(e) => e.key === 'Escape' && onClose()}
 	tabindex="-1"
 >
 	<div
-		class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
+		class="animate-in fade-in zoom-in-95 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl ring-1 ring-gray-200 duration-200"
 		role="presentation"
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={() => {}}
@@ -173,14 +173,14 @@ ${xmlRows.join('\n')}
 		<div class="flex justify-end space-x-3">
 			<button
 				onclick={onClose}
-				class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+				class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow"
 				type="button"
 			>
 				Cancel
 			</button>
 			<button
 				onclick={handleExport}
-				class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+				class="rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-md"
 				type="button"
 			>
 				Export
