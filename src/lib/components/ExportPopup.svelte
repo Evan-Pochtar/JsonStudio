@@ -81,49 +81,75 @@
 		return '';
 	};
 
-	const convertToXLSX = (data: JSONValue): Blob => {
-		let rows: any[] = [];
-		if (Array.isArray(data)) {
-			rows = data.map((item) => (typeof item === 'object' && item !== null ? flattenObject(item) : { value: item }));
-		} else if (typeof data === 'object' && data !== null) {
-			rows = [flattenObject(data)];
+	const convertToXLSX = async (data: JSONValue): Promise<Blob> => {
+		const rowsSrc: Record<string, any>[] = Array.isArray(data)
+			? data.map((item) => (typeof item === 'object' && item !== null ? flattenObject(item) : { value: item }))
+			: typeof data === 'object' && data !== null
+			? [flattenObject(data)]
+			: [{ value: data }];
+
+		if (rowsSrc.length === 0) {
+			return new Blob([new Uint8Array(0)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 		}
 
-		if (rows.length === 0) {
-			rows = [{ empty: '' }];
+		const complexKeys = new Set<string>();
+		const normalizedRows: Record<string, string>[] = [];
+
+		for (const row of rowsSrc) {
+			const norm: Record<string, string> = {};
+			for (const key of Object.keys(row)) {
+				const v = row[key];
+				if (v === null || v === undefined) {
+					norm[key] = '';
+					continue;
+				}
+				if (Array.isArray(v)) {
+					if (v.every((el) => el === null || el === undefined || typeof el !== 'object')) {
+						norm[key] = v.map((el) => (el === null || el === undefined ? '' : String(el))).join(', ');
+					} else {
+						complexKeys.add(key);
+					}
+					continue;
+				}
+				if (typeof v === 'object') {
+					complexKeys.add(key);
+					continue;
+				}
+				norm[key] = String(v);
+			}
+			normalizedRows.push(norm);
 		}
 
-		const headers = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
-		const xmlRows = rows.map((row) => {
-			const cells = headers.map((header) => {
-				const value = row[header];
-				const cellValue =
-					value === null || value === undefined
-						? ''
-						: typeof value === 'string'
-							? value.replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c] || c)
-							: String(value);
-				return `<Cell><Data ss:Type="String">${cellValue}</Data></Cell>`;
+		const allKeys = Array.from(new Set(normalizedRows.flatMap((r) => Object.keys(r))));
+		const headers = allKeys.filter((k) => !complexKeys.has(k));
+		if (headers.length === 0) {
+			const aoa = [['empty'], ['']];
+			const XLSX = (await import('xlsx')).default || (await import('xlsx'));
+			const sheet = XLSX.utils.aoa_to_sheet(aoa);
+			const wb = { Sheets: { Sheet1: sheet }, SheetNames: ['Sheet1'] };
+			const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+			return new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+		}
+
+		const aoa = [headers];
+		for (const r of normalizedRows) {
+			const rowArr = headers.map((h) => {
+				const cell = r[h] ?? '';
+				const s = typeof cell === 'string' ? cell : String(cell);
+				if (s.startsWith('=')) return `'${s}`;
+				return s;
 			});
-			return `<Row>${cells.join('')}</Row>`;
-		});
+			aoa.push(rowArr);
+		}
 
-		const headerRow = `<Row>${headers.map((h) => `<Cell><Data ss:Type="String">${h}</Data></Cell>`).join('')}</Row>`;
-		const xml = `<?xml version="1.0"?>
-								<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
-								xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-								<Worksheet ss:Name="Sheet1">
-								<Table>
-								${headerRow}
-								${xmlRows.join('\n')}
-								</Table>
-								</Worksheet>
-								</Workbook>`;
-
-		return new Blob([xml], { type: 'application/vnd.ms-excel' });
+		const XLSX = (await import('xlsx')).default || (await import('xlsx'));
+		const sheet = XLSX.utils.aoa_to_sheet(aoa);
+		const wb = { Sheets: { Sheet1: sheet }, SheetNames: ['Sheet1'] };
+		const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+		return new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 	};
 
-	const handleExport = (): void => {
+	const handleExport = async (): Promise<void> => {
 		const baseName = fileName.replace(/\.json$/, '');
 		switch (exportFormat) {
 			case 'json':
@@ -133,7 +159,12 @@
 				downloadFile(convertToCSV(data), `${baseName}.csv`, 'text/csv');
 				break;
 			case 'xlsx':
-				downloadFile(convertToXLSX(data), `${baseName}.xlsx`, 'application/vnd.ms-excel');
+				try {
+					const blob = await convertToXLSX(data);
+					downloadFile(blob, `${baseName}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+				} catch {
+					downloadFile(convertToCSV(data), `${baseName}.csv`, 'text/csv');
+				}
 				break;
 		}
 		onClose();

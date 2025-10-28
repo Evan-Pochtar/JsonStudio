@@ -39,6 +39,7 @@
 		"vite": "latest"
 	},
 	"dependencies": {
-		"@sveltejs/adapter-static": "latest"
+		"@sveltejs/adapter-static": "latest",
+		"xlsx": "latest"
 	}
 }
