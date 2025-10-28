@@ -85,11 +85,13 @@
 		const rowsSrc: Record<string, any>[] = Array.isArray(data)
 			? data.map((item) => (typeof item === 'object' && item !== null ? flattenObject(item) : { value: item }))
 			: typeof data === 'object' && data !== null
-			? [flattenObject(data)]
-			: [{ value: data }];
+				? [flattenObject(data)]
+				: [{ value: data }];
 
 		if (rowsSrc.length === 0) {
-			return new Blob([new Uint8Array(0)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+			return new Blob([new Uint8Array(0)], {
+				type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+			});
 		}
 
 		const complexKeys = new Set<string>();
