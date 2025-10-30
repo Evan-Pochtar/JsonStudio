@@ -301,15 +301,23 @@
 		/>
 
 		{#if focusedPath.length > 0}
-			<div class="border-b border-gray-200/80 bg-white/95 p-3 shadow-sm backdrop-blur-sm">
-				<div class="mb-2 text-xs font-medium text-gray-700">Navigation</div>
-				<div class="space-y-1.5">
+			<div
+				class="border-b border-l-4 border-gray-200/80 bg-white/95 p-3 shadow-md ring-1 ring-blue-50/60 backdrop-blur-sm"
+			>
+				<div class="mb-2">
+					<div class="flex items-baseline justify-between">
+						<div class="text-sm font-semibold text-blue-700">Navigation</div>
+						<div class="text-xs text-gray-500">{focusedPath.join('.')}</div>
+					</div>
+				</div>
+
+				<div class="space-y-2">
 					<button
-						class="group flex w-full items-center space-x-2 rounded-lg px-3 py-2 text-left text-xs text-gray-700 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700"
+						class="group flex w-full items-center space-x-3 rounded-md bg-blue-50/30 px-3 py-2 text-left text-sm font-medium shadow-sm transition duration-150 hover:bg-blue-100 hover:shadow focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
 						onclick={() => focusOnPath([])}
 					>
 						<svg
-							class="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5"
+							class="h-4 w-4 text-blue-600 transition-transform group-hover:-translate-x-0.5"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -318,13 +326,14 @@
 						</svg>
 						<span>Back to root</span>
 					</button>
+
 					{#if focusedPath.length > 1}
 						<button
-							class="group flex w-full items-center space-x-2 rounded-lg px-3 py-2 text-left text-xs text-gray-700 transition-all duration-200 hover:bg-blue-50 hover:text-blue-700"
+							class="group flex w-full items-center space-x-3 rounded-md bg-blue-50/30 px-3 py-2 text-left text-sm font-medium shadow-sm transition duration-150 hover:bg-blue-100 hover:shadow focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
 							onclick={() => focusOnPath(focusedPath.slice(0, -1))}
 						>
 							<svg
-								class="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5"
+								class="h-4 w-4 text-blue-600 transition-transform group-hover:-translate-x-0.5"
 								fill="none"
 								stroke="currentColor"
 								viewBox="0 0 24 24"
