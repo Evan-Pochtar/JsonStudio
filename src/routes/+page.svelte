@@ -3,6 +3,7 @@
 	import { browser } from '$app/environment';
 	import JsonEditor from '$lib/components/JsonEditor.svelte';
 	import type { JSONValue } from '$lib/types.ts';
+	import Logo from '$lib/assets/logo.png';
 
 	let jsonEditor: { loadJson?: (data: JSONValue, name?: string) => void } | null = null;
 	let fileInput: HTMLInputElement | null = null;
@@ -61,24 +62,13 @@
 	<header class="border-b border-gray-200/80 bg-white/95 px-6 py-4 shadow-sm backdrop-blur-sm">
 		<div class="flex items-center justify-between">
 			<div class="flex items-center space-x-3">
-				<div
-					class="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shadow-sm"
-				>
-					<svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-						/>
-					</svg>
-				</div>
-				<h1 class="text-xl font-semibold text-gray-900">JSON Editor</h1>
+				<img src={Logo} alt="Logo" class="h-12 w-12 rounded-lg" />
+				<h1 class="text-xl font-semibold text-gray-900">JSON Studio</h1>
 			</div>
 			<div class="flex items-center space-x-2">
 				<button
 					onclick={() => fileInput?.click()}
-					class="inline-flex items-center rounded-lg border border-transparent bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-md focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:outline-none"
+					class="inline-flex items-center rounded-lg border border-transparent bg-gradient-to-r from-red-500 to-red-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-red-700 hover:to-red-800 hover:shadow-md focus:ring-2 focus:ring-red-500/20 focus:ring-offset-2 focus:outline-none"
 					type="button"
 				>
 					<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,7 +83,7 @@
 				</button>
 				<button
 					onclick={createNewFile}
-					class="inline-flex items-center rounded-lg border border-transparent bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-md focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:outline-none"
+					class="inline-flex items-center rounded-lg border border-transparent bg-gradient-to-r from-red-500 to-red-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-red-700 hover:to-red-800 hover:shadow-md focus:ring-2 focus:ring-red-500/20 focus:ring-offset-2 focus:outline-none"
 					type="button"
 				>
 					<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

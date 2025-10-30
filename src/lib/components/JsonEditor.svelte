@@ -349,7 +349,7 @@
 
 		<div class="space-y-2 p-4">
 			<button
-				class="group flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:outline-none"
+				class="group flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow"
 				onclick={() => (showFormatPopup = true)}
 				type="button"
 			>
@@ -364,7 +364,7 @@
 				<span>Format JSON</span>
 			</button>
 			<button
-				class="group flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:outline-none"
+				class="group flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow"
 				onclick={() => (showSortPopup = true)}
 				type="button"
 			>
@@ -384,7 +384,7 @@
 				<span>Sort Data</span>
 			</button>
 			<button
-				class="group flex w-full items-center justify-center space-x-2 rounded-lg border border-transparent bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2.5 text-xs font-medium text-white shadow-sm transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-md focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:outline-none"
+				class="group flex w-full items-center justify-center space-x-2 rounded-lg border border-transparent bg-gradient-to-r from-red-500 to-red-600 px-4 py-2.5 text-xs font-medium text-white shadow-sm transition-all duration-200 hover:from-red-600 hover:to-red-700 hover:shadow-md"
 				onclick={() => (showExportPopup = true)}
 				type="button"
 			>
