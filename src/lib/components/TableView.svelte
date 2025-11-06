@@ -15,16 +15,32 @@
 	let sortKey: string = $state('');
 	let sortDirection: 'asc' | 'desc' = $state('asc');
 
+	const flattenObject = (obj: any, prefix = ''): Record<string, any> => {
+		const flattened: Record<string, any> = {};
+		for (const [key, value] of Object.entries(obj)) {
+			const newKey = prefix ? `${prefix}.${key}` : key;
+			if (value && typeof value === 'object' && !Array.isArray(value)) {
+				Object.assign(flattened, flattenObject(value, newKey));
+			} else if (Array.isArray(value)) {
+				flattened[newKey] = `[${value.length} items]`;
+			} else {
+				flattened[newKey] = value;
+			}
+		}
+		return flattened;
+	};
+
 	const flattenForTable = (obj: JSONValue, prefix = ''): TableRow[] => {
 		const items: TableRow[] = [];
 
 		if (Array.isArray(obj)) {
 			obj.forEach((item, index) => {
 				if (typeof item === 'object' && item !== null) {
+					const flattened = flattenObject(item);
 					items.push({
 						key: `${prefix}[${index}]`,
 						path: [index],
-						...(item as object as Record<string, any>)
+						...flattened
 					});
 				} else {
 					items.push({
@@ -35,26 +51,61 @@
 				}
 			});
 		} else if (typeof obj === 'object' && obj !== null) {
-			for (const [key, value] of Object.entries(obj as Record<string, any>)) {
-				if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-					const flattened = flattenForTable(value as JSONValue, key + '.');
-					items.push(
-						...flattened.map((item) => ({
-							...item,
-							path: [key, ...item.path]
-						}))
-					);
+			const entries = Object.entries(obj as Record<string, any>);
+
+			if (entries.length > 0) {
+				const hasComplexChildren = entries.some(([_, value]) => typeof value === 'object' && value !== null);
+
+				if (hasComplexChildren) {
+					for (const [key, value] of entries) {
+						if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+							const flattened = flattenObject(value);
+							items.push({
+								key,
+								path: [key],
+								...flattened
+							});
+						} else if (Array.isArray(value)) {
+							items.push({
+								key,
+								path: [key],
+								value: `[${value.length} items]`
+							});
+						} else {
+							items.push({
+								key,
+								path: [key],
+								value
+							});
+						}
+					}
 				} else {
-					items.push({
-						key,
-						path: [key],
-						value
-					});
+					const row: TableRow = {
+						key: 'root',
+						path: []
+					};
+					for (const [key, value] of entries) {
+						row[key] = value;
+					}
+					items.push(row);
 				}
 			}
 		}
 
 		return items;
+	};
+
+	const getNestedValue = (obj: any, path: string): any => {
+		const keys = path.split('.');
+		let current = obj;
+		for (const key of keys) {
+			if (current && typeof current === 'object') {
+				current = current[key];
+			} else {
+				return undefined;
+			}
+		}
+		return current;
 	};
 
 	const updateValue = (path: JSONPath, newValue: string): void => {
@@ -79,6 +130,11 @@
 		return [...items].sort((a, b) => {
 			const aVal = a[key] ?? '';
 			const bVal = b[key] ?? '';
+
+			if (typeof aVal === 'number' && typeof bVal === 'number') {
+				return direction === 'asc' ? aVal - bVal : bVal - aVal;
+			}
+
 			const compare = aVal.toString().localeCompare(bVal.toString());
 			return direction === 'asc' ? compare : -compare;
 		});
@@ -109,7 +165,7 @@
 									}
 								}}
 							>
-								<span>{column}</span>
+								<span class="max-w-xs truncate" title={column}>{column}</span>
 								{#if sortKey === column}
 									<svg
 										class="h-3.5 w-3.5 text-blue-600 transition-transform {sortDirection === 'desc'
@@ -139,10 +195,17 @@
 									>
 										{row[column]}
 									</button>
+								{:else if typeof row[column] === 'string' && row[column].startsWith('[') && row[column].includes('items]')}
+									<button
+										class="rounded-md px-2 py-1 text-purple-600 transition-all duration-200 hover:bg-purple-100"
+										ondblclick={() => handleDoubleClick(row.path)}
+									>
+										{row[column]}
+									</button>
 								{:else}
 									<input
 										value={typeof row[column] === 'object' ? JSON.stringify(row[column]) : (row[column] ?? '')}
-										onchange={(e: Event) => updateValue(row.path, (e.target as HTMLInputElement).value)}
+										onchange={(e) => updateValue(row.path, (e.target as HTMLInputElement).value)}
 										class="w-full rounded-md border-0 bg-transparent px-2 py-1 transition-all duration-200 hover:bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
 									/>
 								{/if}

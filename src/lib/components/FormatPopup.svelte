@@ -7,7 +7,7 @@
 		onClose
 	}: {
 		data: JSONValue;
-		onFormat: (formatted: string) => void;
+		onFormat: (formatted: string, indentSize: number) => void;
 		onClose: () => void;
 	} = $props();
 
@@ -23,6 +23,8 @@
 
 	const applyFormat = (): void => {
 		let formatted: string;
+		const finalIndent = selectedFormat === 'compact' ? 0 : indentSize;
+
 		switch (selectedFormat) {
 			case 'compact':
 				formatted = JSON.stringify(data);
@@ -36,7 +38,7 @@
 				formatted = JSON.stringify(data, null, indentSize);
 				break;
 		}
-		onFormat(formatted);
+		onFormat(formatted, finalIndent);
 		onClose();
 	};
 </script>

@@ -12,8 +12,11 @@
 	} = $props();
 
 	let expandedNodes = $state(new Set<string>());
+	let editingPath: string | null = $state(null);
+	let editValue: string = $state('');
 
 	const pathToKey = (path: JSONPath): string => path.map(String).join('.');
+
 	const toggleNode = (path: JSONPath): void => {
 		const k = pathToKey(path);
 		const newSet = new Set(expandedNodes);
@@ -27,8 +30,44 @@
 
 	const isExpanded = (path: JSONPath): boolean => expandedNodes.has(pathToKey(path));
 
-	const handleDoubleClick = (path: JSONPath): void => {
-		focus(path);
+	const handleDoubleClick = (path: JSONPath, value: JSONValue): void => {
+		if (typeof value === 'object' && value !== null) {
+			focus(path);
+		} else {
+			startEditing(path, value);
+		}
+	};
+
+	const startEditing = (path: JSONPath, value: JSONValue): void => {
+		editingPath = pathToKey(path);
+		editValue = typeof value === 'string' ? value : JSON.stringify(value);
+	};
+
+	const finishEditing = (path: JSONPath): void => {
+		if (editingPath === null) return;
+
+		const newData = structuredClone(data) as any;
+		let current: any = newData;
+
+		for (let i = 0; i < path.length - 1; i++) {
+			current = current[path[i] as keyof typeof current];
+		}
+
+		try {
+			const parsed = JSON.parse(editValue);
+			current[path[path.length - 1] as keyof typeof current] = parsed;
+		} catch {
+			current[path[path.length - 1] as keyof typeof current] = editValue;
+		}
+
+		update(newData);
+		editingPath = null;
+		editValue = '';
+	};
+
+	const cancelEditing = (): void => {
+		editingPath = null;
+		editValue = '';
 	};
 
 	const deleteItem = (path: JSONPath): void => {
@@ -122,7 +161,6 @@
 				<div class="flex flex-1 items-center py-1.5">
 					<span
 						class="cursor-pointer rounded-md px-2 py-1 font-semibold text-blue-600 transition-all duration-200 hover:bg-blue-100"
-						ondblclick={() => handleDoubleClick(node.path)}
 						role="button"
 						tabindex="0"
 					>
@@ -133,27 +171,48 @@
 							<span class="text-purple-600">{'{}'}</span>
 						{/if}
 					</span>
-					<span class="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-						{#if node.isArray}
-							{node.childCount} items
-						{:else if node.isObject}
-							{node.childCount} props
-						{:else}
-							<span class="text-gray-700"
-								>{typeof node.value === 'string' ? `"${node.value}"` : String(node.value)}</span
-							>
-						{/if}
-					</span>
+
+					{#if editingPath === pathToKey(node.path)}
+						<input
+							type="text"
+							bind:value={editValue}
+							onblur={() => finishEditing(node.path)}
+							onkeydown={(e) => {
+								if (e.key === 'Enter') finishEditing(node.path);
+								if (e.key === 'Escape') cancelEditing();
+							}}
+							class="ml-2 flex-1 rounded-md border border-blue-500 px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+						/>
+					{:else}
+						<span
+							class="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+							ondblclick={() => handleDoubleClick(node.path, node.value)}
+							role="button"
+							tabindex="0"
+						>
+							{#if node.isArray}
+								{node.childCount} items
+							{:else if node.isObject}
+								{node.childCount} props
+							{:else}
+								<span class="text-gray-700"
+									>{typeof node.value === 'string' ? `"${node.value}"` : String(node.value)}</span
+								>
+							{/if}
+						</span>
+					{/if}
 				</div>
 
 				<div class="ml-2 flex shrink-0 space-x-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-					<button
-						class="rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 transition-all duration-200 hover:bg-blue-200"
-						onclick={() => focus(node.path)}
-						type="button"
-					>
-						Open
-					</button>
+					{#if node.isObject || node.isArray}
+						<button
+							class="rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 transition-all duration-200 hover:bg-blue-200"
+							onclick={() => focus(node.path)}
+							type="button"
+						>
+							Open
+						</button>
+					{/if}
 					<button
 						class="rounded-md bg-red-100 px-2 py-1 text-xs font-medium text-red-700 transition-all duration-200 hover:bg-red-200"
 						onclick={() => deleteItem(node.path)}

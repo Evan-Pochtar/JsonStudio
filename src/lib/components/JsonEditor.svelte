@@ -21,6 +21,7 @@
 	let showExportPopup = $state(false);
 	let showFormatPopup = $state(false);
 	let showSortPopup = $state(false);
+	let indentSize = $state(2);
 
 	let currentData: JSONValue = {} as JSONObject;
 	let focusedPath: Array<string | number> = $state([]);
@@ -177,14 +178,37 @@
 		updateFilteredData();
 	};
 
-	const handleFormatted = (formattedText: string): void => {
+	const handleFormatted = (formattedText: string, newIndentSize: number): void => {
 		try {
 			const parsed = JSON.parse(formattedText);
-			addToUndoStack();
-			currentData = parsed;
-			isModified = true;
-			updateFilteredData();
-			buildSearchIndex();
+			indentSize = newIndentSize;
+
+			if (focusedPath.length === 0) {
+				addToUndoStack();
+				currentData = parsed;
+				isModified = true;
+				updateFilteredData();
+				buildSearchIndex();
+			} else {
+				const newData = structuredClone(currentData) as any;
+				let current: any = newData;
+
+				for (let i = 0; i < focusedPath.length - 1; i++) {
+					current = current[focusedPath[i] as keyof typeof current];
+				}
+
+				if (focusedPath.length === 1) {
+					current[focusedPath[0] as keyof typeof current] = parsed;
+				} else {
+					current[focusedPath[focusedPath.length - 1] as keyof typeof current] = parsed;
+				}
+
+				addToUndoStack();
+				currentData = newData;
+				isModified = true;
+				updateFilteredData();
+				buildSearchIndex();
+			}
 		} catch (e) {
 			console.error('Format error:', e);
 		}
@@ -452,7 +476,7 @@
 				focus={(e: Array<string | number>) => focusOnPath([...focusedPath, ...e])}
 			/>
 		{:else if viewMode === 'text'}
-			<TextView data={filteredData} update={(e: JSONValue) => updateData(e)} />
+			<TextView data={filteredData} update={(e: JSONValue) => updateData(e)} {indentSize} />
 		{/if}
 	</div>
 	{#if showExportPopup}

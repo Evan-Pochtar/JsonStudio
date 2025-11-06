@@ -14,14 +14,40 @@
 	let sortKey: string = $state('');
 	let sortDirection: 'asc' | 'desc' = $state('asc');
 
+	const flattenObjectKeys = (obj: any, prefix = ''): string[] => {
+		const keys: string[] = [];
+		for (const [key, value] of Object.entries(obj)) {
+			const newKey = prefix ? `${prefix}.${key}` : key;
+			if (value && typeof value === 'object' && !Array.isArray(value)) {
+				keys.push(...flattenObjectKeys(value, newKey));
+			} else {
+				keys.push(newKey);
+			}
+		}
+		return keys;
+	};
+
+	const getNestedValue = (obj: any, path: string): any => {
+		const keys = path.split('.');
+		let current = obj;
+		for (const key of keys) {
+			if (current && typeof current === 'object') {
+				current = current[key];
+			} else {
+				return undefined;
+			}
+		}
+		return current;
+	};
+
 	const availableKeys = $derived.by(() => {
 		if (Array.isArray(data) && data.length > 0) {
 			const firstItem = data[0];
 			if (typeof firstItem === 'object' && firstItem !== null) {
-				return Object.keys(firstItem as Record<string, any>);
+				return flattenObjectKeys(firstItem as Record<string, any>);
 			}
 		} else if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
-			return Object.keys(data as Record<string, any>);
+			return flattenObjectKeys(data as Record<string, any>);
 		}
 		return [];
 	});
@@ -36,8 +62,8 @@
 
 		if (Array.isArray(data)) {
 			sortedData = [...data].sort((a, b) => {
-				const aVal = typeof a === 'object' && a !== null ? (a as any)[sortKey] : a;
-				const bVal = typeof b === 'object' && b !== null ? (b as any)[sortKey] : b;
+				const aVal = typeof a === 'object' && a !== null ? getNestedValue(a, sortKey) : a;
+				const bVal = typeof b === 'object' && b !== null ? getNestedValue(b, sortKey) : b;
 
 				if (aVal === undefined || aVal === null) return 1;
 				if (bVal === undefined || bVal === null) return -1;
@@ -54,8 +80,11 @@
 		} else if (typeof data === 'object' && data !== null) {
 			const entries = Object.entries(data as Record<string, any>);
 			entries.sort(([keyA, valA], [keyB, valB]) => {
-				const aVal = sortKey === '_key' ? keyA : valA;
-				const bVal = sortKey === '_key' ? keyB : valB;
+				const aVal = sortKey === '_key' ? keyA : getNestedValue(valA, sortKey);
+				const bVal = sortKey === '_key' ? keyB : getNestedValue(valB, sortKey);
+
+				if (aVal === undefined || aVal === null) return 1;
+				if (bVal === undefined || bVal === null) return -1;
 
 				if (typeof aVal === 'number' && typeof bVal === 'number') {
 					return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
@@ -108,6 +137,7 @@
 							<option value={key}>{key}</option>
 						{/each}
 					</select>
+					<p class="mt-1.5 text-xs text-gray-500">Nested fields shown with dot notation (e.g., variables.state)</p>
 				</div>
 
 				<div>
