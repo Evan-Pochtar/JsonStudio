@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import type { JSONValue } from '$lib/types.ts';
 
@@ -19,8 +19,13 @@
 	let errorMessage: string = $state('');
 	let textarea: HTMLTextAreaElement | null = null;
 	let lastValidData: JSONValue = data;
+	let isInternalUpdate = false;
 
 	const updateTextContent = (): void => {
+		if (isInternalUpdate) {
+			isInternalUpdate = false;
+			return;
+		};
 		try {
 			textContent = JSON.stringify(data, null, indentSize);
 			errorLine = null;
@@ -39,7 +44,7 @@
 
 	const handleInput = (): void => {
 		updateLineNumbers();
-
+		isInternalUpdate = true;
 		try {
 			const parsed = JSON.parse(textContent);
 			update(parsed);
@@ -63,21 +68,6 @@
 			} else {
 				errorLine = null;
 			}
-		}
-	};
-
-	const formatJson = async (): Promise<void> => {
-		try {
-			const parsed = JSON.parse(textContent);
-			textContent = JSON.stringify(parsed, null, indentSize);
-			updateLineNumbers();
-			update(parsed);
-			errorLine = null;
-			errorMessage = '';
-			await tick();
-			if (textarea) textarea.focus();
-		} catch (e: any) {
-			errorMessage = e?.message ?? String(e);
 		}
 	};
 
@@ -140,7 +130,22 @@
 		updateTextContent();
 
 		if (browser) {
-			const handleFormat = (): void => void formatJson();
+			const handleFormat = (): void => {
+				try {
+					const parsed = JSON.parse(textContent);
+					textContent = JSON.stringify(parsed, null, indentSize);
+					updateLineNumbers();
+					update(parsed);
+					errorLine = null;
+					errorMessage = '';
+					setTimeout(() => {
+						isInternalUpdate = false;
+						if (textarea) textarea.focus();
+					}, 0);
+				} catch (e: any) {
+					errorMessage = e?.message ?? String(e);
+				}
+			};
 			window.addEventListener('editor:format', handleFormat as EventListener);
 			return () => window.removeEventListener('editor:format', handleFormat as EventListener);
 		}
