@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { JSONValue, JSONPath, FlatNode } from '$lib/types.ts';
+	import { safeClone } from '$lib/utils/helpers';
 
 	let {
 		focus,
@@ -14,6 +16,7 @@
 	let expandedNodes = $state(new Set<string>());
 	let editingPath: string | null = $state(null);
 	let editValue: string = $state('');
+	let containerElement: HTMLInputElement | null = $state(null);
 
 	const pathToKey = (path: JSONPath): string => path.map(String).join('.');
 
@@ -30,7 +33,8 @@
 
 	const isExpanded = (path: JSONPath): boolean => expandedNodes.has(pathToKey(path));
 
-	const handleDoubleClick = (path: JSONPath, value: JSONValue): void => {
+	const handleDoubleClick = (e: MouseEvent, path: JSONPath, value: JSONValue): void => {
+		e.stopPropagation();
 		if (typeof value === 'object' && value !== null) {
 			focus(path);
 		} else {
@@ -46,7 +50,7 @@
 	const finishEditing = (path: JSONPath): void => {
 		if (editingPath === null) return;
 
-		const newData = structuredClone(data) as any;
+		const newData = safeClone(data) as any;
 		let current: any = newData;
 
 		for (let i = 0; i < path.length - 1; i++) {
@@ -65,13 +69,8 @@
 		editValue = '';
 	};
 
-	const cancelEditing = (): void => {
-		editingPath = null;
-		editValue = '';
-	};
-
 	const deleteItem = (path: JSONPath): void => {
-		const newData = structuredClone(data) as any;
+		const newData = safeClone(data) as any;
 		let current: any = newData;
 		for (let i = 0; i < path.length - 1; i++) {
 			current = current[path[i] as keyof typeof current];
@@ -83,6 +82,11 @@
 			delete current[last as keyof typeof current];
 		}
 		update(newData);
+	};
+
+	const cancelEditing = (): void => {
+		editingPath = null;
+		editValue = '';
 	};
 
 	const buildVisibleNodes = (): FlatNode[] => {
@@ -126,6 +130,20 @@
 		return out;
 	};
 
+	onMount(() => {
+		const handleClickOutside = (e: MouseEvent): void => {
+			if (editingPath && containerElement && !containerElement.contains(e.target as Node)) {
+				const node = visibleNodes.find(n => pathToKey(n.path) === editingPath);
+				if (node) {
+					finishEditing(node.path);
+				}
+			}
+		};
+
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	});
+
 	const visibleNodes = $derived(buildVisibleNodes());
 </script>
 
@@ -161,6 +179,7 @@
 				<div class="flex flex-1 items-center py-1.5">
 					<span
 						class="cursor-pointer rounded-md px-2 py-1 font-semibold text-blue-600 transition-all duration-200 hover:bg-blue-100"
+						ondblclick={(e) => handleDoubleClick(e, node.path, node.value)}
 						role="button"
 						tabindex="0"
 					>
@@ -175,6 +194,7 @@
 					{#if editingPath === pathToKey(node.path)}
 						<input
 							type="text"
+							bind:this={containerElement}
 							bind:value={editValue}
 							onblur={() => finishEditing(node.path)}
 							onkeydown={(e) => {
@@ -186,7 +206,7 @@
 					{:else}
 						<span
 							class="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
-							ondblclick={() => handleDoubleClick(node.path, node.value)}
+							ondblclick={(e) => handleDoubleClick(e, node.path, node.value)}
 							role="button"
 							tabindex="0"
 						>
