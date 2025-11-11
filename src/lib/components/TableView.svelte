@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { TableRow, JSONValue, JSONPath } from '$lib/types.ts';
 
 	let {
@@ -14,6 +15,17 @@
 
 	let sortKey: string = $state('');
 	let sortDirection: 'asc' | 'desc' = $state('asc');
+	let columnWidths: Map<string, number> = $state(new Map());
+	let resizingColumn: string | null = $state(null);
+	let resizeStartX: number = 0;
+	let resizeStartWidth: number = 0;
+	let editingCell: string | null = $state(null);
+	let expandedCells: Set<string> = $state(new Set());
+
+	const DEFAULT_COL_WIDTH = 200;
+	const MIN_COL_WIDTH = 60;
+	const MAX_COL_WIDTH = 800;
+	const MAX_CELL_HEIGHT = 400;
 
 	const flattenObject = (obj: any, prefix = ''): Record<string, any> => {
 		const flattened: Record<string, any> = {};
@@ -54,58 +66,32 @@
 			const entries = Object.entries(obj as Record<string, any>);
 
 			if (entries.length > 0) {
-				const hasComplexChildren = entries.some(([_, value]) => typeof value === 'object' && value !== null);
-
-				if (hasComplexChildren) {
-					for (const [key, value] of entries) {
-						if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-							const flattened = flattenObject(value);
-							items.push({
-								key,
-								path: [key],
-								...flattened
-							});
-						} else if (Array.isArray(value)) {
-							items.push({
-								key,
-								path: [key],
-								value: `[${value.length} items]`
-							});
-						} else {
-							items.push({
-								key,
-								path: [key],
-								value
-							});
-						}
+				for (const [key, value] of entries) {
+					if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+						const propCount = Object.keys(value).length;
+						items.push({
+							key,
+							path: [key],
+							value: `[${propCount} props]`
+						});
+					} else if (Array.isArray(value)) {
+						items.push({
+							key,
+							path: [key],
+							value: `[${value.length} items]`
+						});
+					} else {
+						items.push({
+							key,
+							path: [key],
+							value
+						});
 					}
-				} else {
-					const row: TableRow = {
-						key: 'root',
-						path: []
-					};
-					for (const [key, value] of entries) {
-						row[key] = value;
-					}
-					items.push(row);
 				}
 			}
 		}
 
 		return items;
-	};
-
-	const getNestedValue = (obj: any, path: string): any => {
-		const keys = path.split('.');
-		let current = obj;
-		for (const key of keys) {
-			if (current && typeof current === 'object') {
-				current = current[key];
-			} else {
-				return undefined;
-			}
-		}
-		return current;
 	};
 
 	const updateValue = (path: JSONPath, newValue: string): void => {
@@ -140,6 +126,75 @@
 		});
 	};
 
+	const startResize = (e: MouseEvent, column: string): void => {
+		e.preventDefault();
+		resizingColumn = column;
+		resizeStartX = e.clientX;
+		resizeStartWidth = columnWidths.get(column) || DEFAULT_COL_WIDTH;
+	};
+
+	const handleResize = (e: MouseEvent): void => {
+		if (!resizingColumn) return;
+		const delta = e.clientX - resizeStartX;
+		const newWidth = Math.max(MIN_COL_WIDTH, Math.min(MAX_COL_WIDTH, resizeStartWidth + delta));
+		const newMap = new Map(columnWidths);
+		newMap.set(resizingColumn, newWidth);
+		columnWidths = newMap;
+	};
+
+	const stopResize = (): void => {
+		resizingColumn = null;
+	};
+
+	const autoResizeColumn = (column: string): void => {
+		const cells = document.querySelectorAll(`[data-column="${column}"]`);
+		let maxWidth = MIN_COL_WIDTH;
+
+		cells.forEach((cell) => {
+			const content = cell.textContent || '';
+			const tempSpan = document.createElement('span');
+			tempSpan.style.visibility = 'hidden';
+			tempSpan.style.position = 'absolute';
+			tempSpan.style.whiteSpace = 'pre';
+			tempSpan.style.font = window.getComputedStyle(cell).font;
+			tempSpan.textContent = content;
+			document.body.appendChild(tempSpan);
+			const width = tempSpan.offsetWidth + 48;
+			maxWidth = Math.max(maxWidth, width);
+			document.body.removeChild(tempSpan);
+		});
+
+		const newMap = new Map(columnWidths);
+		newMap.set(column, Math.min(maxWidth, MAX_COL_WIDTH));
+		columnWidths = newMap;
+	};
+
+	const getCellKey = (rowIndex: number, column: string): string => {
+		return `${rowIndex}-${column}`;
+	};
+
+	const startEditing = (rowIndex: number, column: string): void => {
+		editingCell = getCellKey(rowIndex, column);
+	};
+
+	const stopEditing = (): void => {
+		editingCell = null;
+	};
+
+	const isComplex = (value: any): boolean => {
+		return typeof value === 'string' && value.startsWith('[') && (value.includes('items]') || value.includes('props]'));
+	};
+
+	onMount(() => {
+		document.addEventListener('mousemove', handleResize);
+		document.addEventListener('mouseup', stopResize);
+
+		return () => {
+			document.removeEventListener('mousemove', handleResize);
+			document.removeEventListener('mouseup', stopResize);
+		};
+	});
+
 	const tableData = $derived(flattenForTable(data));
 	const columns = $derived(tableData.length > 0 ? Object.keys(tableData[0]).filter((k) => k !== 'path') : []);
 	const sortedData = $derived(sortKey ? sortData(tableData, sortKey, sortDirection) : tableData);
@@ -147,15 +202,17 @@
 
 <div class="h-full overflow-auto">
 	{#if columns.length > 0}
-		<table class="w-full">
-			<thead class="sticky top-0 bg-gradient-to-b from-gray-50 to-gray-100 shadow-sm">
+		<table class="w-full table-fixed border-collapse">
+			<thead class="sticky top-0 z-10 bg-gradient-to-b from-gray-50 to-gray-100 shadow-sm">
 				<tr>
 					{#each columns as column}
 						<th
-							class="border-b-2 border-gray-200 px-4 py-3 text-left text-xs font-semibold tracking-wider text-gray-700 uppercase"
+							class="group relative border-b-2 border-gray-200 px-4 py-3 text-left text-xs font-semibold tracking-wider text-gray-700 uppercase"
+							style="width: {columnWidths.get(column) || DEFAULT_COL_WIDTH}px;"
+							data-column={column}
 						>
 							<button
-								class="flex items-center space-x-2 transition-colors hover:text-gray-900"
+								class="flex w-full items-center space-x-2 transition-colors hover:text-gray-900"
 								onclick={() => {
 									if (sortKey === column) {
 										sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
@@ -165,10 +222,10 @@
 									}
 								}}
 							>
-								<span class="max-w-xs truncate" title={column}>{column}</span>
+								<span class="flex-1 truncate text-left" title={column}>{column}</span>
 								{#if sortKey === column}
 									<svg
-										class="h-3.5 w-3.5 text-blue-600 transition-transform {sortDirection === 'desc'
+										class="h-3.5 w-3.5 flex-shrink-0 text-blue-600 transition-transform {sortDirection === 'desc'
 											? 'rotate-180'
 											: ''}"
 										fill="none"
@@ -179,35 +236,89 @@
 									</svg>
 								{/if}
 							</button>
+							<button
+								class="absolute top-0 right-0 bottom-0 w-2 cursor-col-resize border-0 bg-transparent p-0 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-blue-400"
+								onmousedown={(e) => startResize(e, column)}
+								ondblclick={() => autoResizeColumn(column)}
+								aria-label="Resize column"
+							></button>
 						</th>
 					{/each}
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-200 bg-white">
-				{#each sortedData as row, index}
+				{#each sortedData as row, rowIndex}
 					<tr class="transition-colors duration-150 hover:bg-blue-50/30">
 						{#each columns as column}
-							<td class="border-r border-gray-100 px-4 py-3 text-sm text-gray-900">
+							{@const cellKey = getCellKey(rowIndex, column)}
+							{@const isEditing = editingCell === cellKey}
+							{@const cellValue = typeof row[column] === 'object' ? JSON.stringify(row[column]) : (row[column] ?? '')}
+							{@const shouldTruncate = !isEditing && !expandedCells.has(cellKey)}
+							<td
+								class="relative border-r border-gray-100 px-4 py-2 text-sm text-gray-900"
+								style="width: {columnWidths.get(column) || DEFAULT_COL_WIDTH}px; max-width: {columnWidths.get(column) ||
+									DEFAULT_COL_WIDTH}px;"
+								data-column={column}
+							>
 								{#if column === 'key'}
 									<button
-										class="rounded-md px-2 py-1 font-medium text-blue-600 transition-all duration-200 hover:bg-blue-100"
+										class="w-full truncate rounded-md px-2 py-1 text-left font-medium text-blue-600 transition-all duration-200 hover:bg-blue-100"
 										ondblclick={() => handleDoubleClick(row.path)}
 									>
 										{row[column]}
 									</button>
-								{:else if typeof row[column] === 'string' && row[column].startsWith('[') && row[column].includes('items]')}
+								{:else if isComplex(row[column])}
 									<button
-										class="rounded-md px-2 py-1 text-purple-600 transition-all duration-200 hover:bg-purple-100"
+										class="w-full truncate rounded-md px-2 py-1 text-left text-purple-600 transition-all duration-200 hover:bg-purple-100"
 										ondblclick={() => handleDoubleClick(row.path)}
 									>
 										{row[column]}
 									</button>
 								{:else}
-									<input
-										value={typeof row[column] === 'object' ? JSON.stringify(row[column]) : (row[column] ?? '')}
-										onchange={(e) => updateValue(row.path, (e.target as HTMLInputElement).value)}
-										class="w-full rounded-md border-0 bg-transparent px-2 py-1 transition-all duration-200 hover:bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
-									/>
+									<div class="relative w-full">
+										{#if isEditing}
+											<textarea
+												value={cellValue}
+												onchange={(e) => {
+													updateValue(row.path, (e.target as HTMLTextAreaElement).value);
+													stopEditing();
+												}}
+												onblur={stopEditing}
+												onfocus={(e) => {
+													const target = e.target as HTMLTextAreaElement;
+													target.style.height = 'auto';
+													target.style.height = Math.min(target.scrollHeight, MAX_CELL_HEIGHT) + 'px';
+												}}
+												oninput={(e) => {
+													const target = e.target as HTMLTextAreaElement;
+													target.style.height = 'auto';
+													target.style.height = Math.min(target.scrollHeight, MAX_CELL_HEIGHT) + 'px';
+												}}
+												class="w-full resize-none overflow-auto rounded-md border border-blue-500 bg-white px-2 py-1 transition-all duration-200 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+												rows="1"
+											></textarea>
+										{:else}
+											<button
+												class="w-full cursor-text overflow-hidden rounded-md border-0 bg-transparent px-2 py-1 transition-all duration-200 hover:bg-gray-50"
+												class:line-clamp-2={shouldTruncate}
+												style={shouldTruncate ? '' : `max-height: ${MAX_CELL_HEIGHT}px; overflow-y: auto;`}
+												onclick={() => startEditing(rowIndex, column)}
+												ondblclick={(e) => {
+													e.stopPropagation();
+													const newSet = new Set(expandedCells);
+													if (newSet.has(cellKey)) {
+														newSet.delete(cellKey);
+													} else {
+														newSet.add(cellKey);
+													}
+													expandedCells = newSet;
+												}}
+												tabindex="0"
+											>
+												{cellValue}
+											</button>
+										{/if}
+									</div>
 								{/if}
 							</td>
 						{/each}
@@ -219,3 +330,13 @@
 		<div class="flex h-full items-center justify-center text-gray-500">No tabular data to display</div>
 	{/if}
 </div>
+
+<style>
+	.line-clamp-2 {
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+</style>

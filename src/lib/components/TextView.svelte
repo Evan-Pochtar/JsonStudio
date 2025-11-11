@@ -25,7 +25,7 @@
 		if (isInternalUpdate) {
 			isInternalUpdate = false;
 			return;
-		};
+		}
 		try {
 			textContent = JSON.stringify(data, null, indentSize);
 			errorLine = null;

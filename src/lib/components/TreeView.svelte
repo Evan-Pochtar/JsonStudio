@@ -133,7 +133,7 @@
 	onMount(() => {
 		const handleClickOutside = (e: MouseEvent): void => {
 			if (editingPath && containerElement && !containerElement.contains(e.target as Node)) {
-				const node = visibleNodes.find(n => pathToKey(n.path) === editingPath);
+				const node = visibleNodes.find((n) => pathToKey(n.path) === editingPath);
 				if (node) {
 					finishEditing(node.path);
 				}
