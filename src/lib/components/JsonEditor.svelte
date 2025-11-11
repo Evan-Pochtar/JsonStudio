@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import type { JSONValue, JSONObject, SearchMatch, UndoEntry } from '$lib/types.ts';
+	import { safeClone } from '$lib/utils/helpers';
 	import TableView from './TableView.svelte';
 	import TreeView from './TreeView.svelte';
 	import TextView from './TextView.svelte';
@@ -38,7 +39,7 @@
 	const MAX_UNDO_STACK = 50;
 
 	export const loadJson = (data: JSONValue, name = 'untitled.json'): void => {
-		currentData = structuredClone(data);
+		currentData = safeClone(data);
 		fileName = name;
 		focusedPath = [];
 		isModified = false;
@@ -50,7 +51,7 @@
 
 	const addToUndoStack = (): void => {
 		undoStack.push({
-			data: structuredClone(currentData),
+			data: safeClone(currentData),
 			path: [...focusedPath]
 		});
 		if (undoStack.length > MAX_UNDO_STACK) {
@@ -62,7 +63,7 @@
 	const undo = (): void => {
 		if (undoStack.length > 0) {
 			redoStack.push({
-				data: structuredClone(currentData),
+				data: safeClone(currentData),
 				path: [...focusedPath]
 			});
 			const previous = undoStack.pop() as UndoEntry;
@@ -77,7 +78,7 @@
 	const redo = (): void => {
 		if (redoStack.length > 0) {
 			undoStack.push({
-				data: structuredClone(currentData),
+				data: safeClone(currentData),
 				path: [...focusedPath]
 			});
 			const next = redoStack.pop() as UndoEntry;
@@ -91,7 +92,7 @@
 
 	const updateData = (newData: JSONValue): void => {
 		addToUndoStack();
-		currentData = structuredClone(newData);
+		currentData = safeClone(newData);
 		isModified = true;
 		updateFilteredData();
 		buildSearchIndex();
@@ -190,7 +191,7 @@
 				updateFilteredData();
 				buildSearchIndex();
 			} else {
-				const newData = structuredClone(currentData) as any;
+				const newData = safeClone(currentData) as any;
 				let current: any = newData;
 
 				for (let i = 0; i < focusedPath.length - 1; i++) {

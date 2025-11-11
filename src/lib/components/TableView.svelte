@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { TableRow, JSONValue, JSONPath } from '$lib/types.ts';
+	import { safeClone } from '$lib/utils/helpers';
 
 	let {
 		focus,
@@ -95,7 +96,7 @@
 	};
 
 	const updateValue = (path: JSONPath, newValue: string): void => {
-		const newData = structuredClone(data) as any;
+		const newData = safeClone(data) as any;
 		let current: any = newData;
 		for (let i = 0; i < path.length - 1; i++) {
 			current = current[path[i] as keyof typeof current];
