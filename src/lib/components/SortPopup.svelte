@@ -14,17 +14,23 @@
 	let sortKey: string = $state('');
 	let sortDirection: 'asc' | 'desc' = $state('asc');
 
-	const flattenObjectKeys = (obj: any, prefix = ''): string[] => {
-		const keys: string[] = [];
-		for (const [key, value] of Object.entries(obj)) {
-			const newKey = prefix ? `${prefix}.${key}` : key;
-			if (value && typeof value === 'object' && !Array.isArray(value)) {
-				keys.push(...flattenObjectKeys(value, newKey));
-			} else {
-				keys.push(newKey);
+	const findArrayPaths = (obj: any, path = ''): Array<{ path: string; keys: string[] }> => {
+		const results: Array<{ path: string; keys: string[] }> = [];
+		
+		if (Array.isArray(obj) && obj.length > 0) {
+			const firstItem = obj[0];
+			if (typeof firstItem === 'object' && firstItem !== null) {
+				const keys = Object.keys(firstItem);
+				results.push({ path: path || 'root', keys });
+			}
+		} else if (typeof obj === 'object' && obj !== null) {
+			for (const [key, value] of Object.entries(obj)) {
+				const newPath = path ? `${path}.${key}` : key;
+				results.push(...findArrayPaths(value, newPath));
 			}
 		}
-		return keys;
+		
+		return results;
 	};
 
 	const getNestedValue = (obj: any, path: string): any => {
@@ -40,16 +46,19 @@
 		return current;
 	};
 
-	const availableKeys = $derived.by(() => {
-		if (Array.isArray(data) && data.length > 0) {
-			const firstItem = data[0];
-			if (typeof firstItem === 'object' && firstItem !== null) {
-				return flattenObjectKeys(firstItem as Record<string, any>);
-			}
-		} else if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
-			return flattenObjectKeys(data as Record<string, any>);
+	const setNestedValue = (obj: any, path: string, value: any): void => {
+		const keys = path.split('.');
+		let current = obj;
+		for (let i = 0; i < keys.length - 1; i++) {
+			current = current[keys[i]];
 		}
-		return [];
+		current[keys[keys.length - 1]] = value;
+	};
+
+	const availableArrays = $derived(findArrayPaths(data));
+	
+	const isTopLevelObject = $derived.by(() => {
+		return typeof data === 'object' && data !== null && !Array.isArray(data);
 	});
 
 	const applySorting = (): void => {
@@ -58,48 +67,46 @@
 			return;
 		}
 
-		let sortedData: JSONValue;
-
-		if (Array.isArray(data)) {
-			sortedData = [...data].sort((a, b) => {
-				const aVal = typeof a === 'object' && a !== null ? getNestedValue(a, sortKey) : a;
-				const bVal = typeof b === 'object' && b !== null ? getNestedValue(b, sortKey) : b;
-
-				if (aVal === undefined || aVal === null) return 1;
-				if (bVal === undefined || bVal === null) return -1;
-
-				if (typeof aVal === 'number' && typeof bVal === 'number') {
-					return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
-				}
-
-				const aStr = String(aVal).toLowerCase();
-				const bStr = String(bVal).toLowerCase();
-				const comparison = aStr.localeCompare(bStr);
-				return sortDirection === 'asc' ? comparison : -comparison;
-			});
-		} else if (typeof data === 'object' && data !== null) {
+		// Handle special sorting for top-level object by key name
+		if (sortKey === '_object_keys') {
 			const entries = Object.entries(data as Record<string, any>);
-			entries.sort(([keyA, valA], [keyB, valB]) => {
-				const aVal = sortKey === '_key' ? keyA : getNestedValue(valA, sortKey);
-				const bVal = sortKey === '_key' ? keyB : getNestedValue(valB, sortKey);
-
-				if (aVal === undefined || aVal === null) return 1;
-				if (bVal === undefined || bVal === null) return -1;
-
-				if (typeof aVal === 'number' && typeof bVal === 'number') {
-					return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
-				}
-
-				const aStr = String(aVal).toLowerCase();
-				const bStr = String(bVal).toLowerCase();
-				const comparison = aStr.localeCompare(bStr);
+			entries.sort(([keyA], [keyB]) => {
+				const comparison = keyA.localeCompare(keyB);
 				return sortDirection === 'asc' ? comparison : -comparison;
 			});
-			sortedData = Object.fromEntries(entries);
-		} else {
-			sortedData = data;
+			const sortedData = Object.fromEntries(entries);
+			onSort(sortedData);
+			onClose();
+			return;
 		}
 
+		const [arrayPath, fieldKey] = sortKey.split('::');
+		const sortedData = JSON.parse(JSON.stringify(data));
+		
+		const arrayToSort = getNestedValue(sortedData, arrayPath);
+		if (!Array.isArray(arrayToSort)) {
+			onClose();
+			return;
+		}
+
+		arrayToSort.sort((a, b) => {
+			const aVal = a[fieldKey];
+			const bVal = b[fieldKey];
+
+			if (aVal === undefined || aVal === null) return 1;
+			if (bVal === undefined || bVal === null) return -1;
+
+			if (typeof aVal === 'number' && typeof bVal === 'number') {
+				return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+			}
+
+			const aStr = String(aVal).toLowerCase();
+			const bStr = String(bVal).toLowerCase();
+			const comparison = aStr.localeCompare(bStr);
+			return sortDirection === 'asc' ? comparison : -comparison;
+		});
+
+		setNestedValue(sortedData, arrayPath, arrayToSort);
 		onSort(sortedData);
 		onClose();
 	};
@@ -120,7 +127,7 @@
 	>
 		<h2 class="mb-4 text-lg font-semibold text-gray-900">Sort Data</h2>
 
-		{#if availableKeys.length > 0}
+		{#if availableArrays.length > 0 || isTopLevelObject}
 			<div class="mb-6 space-y-4">
 				<div>
 					<label for="fieldselect" class="mb-2 block text-sm font-medium text-gray-700">Sort By</label>
@@ -129,15 +136,29 @@
 						bind:value={sortKey}
 						class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 					>
-						<option value="">Select a field</option>
-						{#if !Array.isArray(data)}
-							<option value="_key">Key Name</option>
+						<option value="">Select a field to sort</option>
+						{#if isTopLevelObject}
+							<optgroup label="Top Level">
+								<option value="_object_keys">Key Name</option>
+							</optgroup>
 						{/if}
-						{#each availableKeys as key}
-							<option value={key}>{key}</option>
+						{#each availableArrays as array}
+							<optgroup label={array.path}>
+								{#each array.keys as key}
+									<option value={`${array.path}::${key}`}>{key}</option>
+								{/each}
+							</optgroup>
 						{/each}
 					</select>
-					<p class="mt-1.5 text-xs text-gray-500">Nested fields shown with dot notation (e.g., variables.state)</p>
+					<p class="mt-1.5 text-xs text-gray-500">
+						{#if isTopLevelObject && availableArrays.length > 0}
+							Sort top-level keys or arrays with objects
+						{:else if isTopLevelObject}
+							Sort top-level keys by name
+						{:else}
+							Only arrays with objects can be sorted
+						{/if}
+					</p>
 				</div>
 
 				<div>
@@ -186,7 +207,7 @@
 				</button>
 			</div>
 		{:else}
-			<p class="mb-6 text-sm text-gray-500">No sortable fields available in current data.</p>
+			<p class="mb-6 text-sm text-gray-500">No sortable data found. Data must be an object with keys or contain arrays with objects.</p>
 			<div class="flex justify-end">
 				<button
 					onclick={onClose}
