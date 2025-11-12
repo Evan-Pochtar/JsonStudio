@@ -32,3 +32,10 @@ export type FlatNode = {
 };
 
 export type UndoEntry = { data: JSONValue; path: Array<string | number> };
+
+export type ContextMenuPosition = { x: number; y: number };
+export type ContextMenuData = {
+	column?: string;
+	row?: any;
+	path?: JSONPath;
+};

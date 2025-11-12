@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { TableRow, JSONValue, JSONPath } from '$lib/types.ts';
 	import { safeClone } from '$lib/utils/helpers';
+	import DeleteKeyPopup from './DeleteKeyPopup.svelte';
 
 	let {
 		focus,
@@ -22,6 +23,9 @@
 	let resizeStartWidth: number = 0;
 	let editingCell: string | null = $state(null);
 	let expandedCells: Set<string> = $state(new Set());
+	let contextMenu: { x: number; y: number; column: string } | null = $state(null);
+	let showDeleteKeyPopup = $state(false);
+	let keyToDelete = $state('');
 
 	const DEFAULT_COL_WIDTH = 200;
 	const MIN_COL_WIDTH = 60;
@@ -186,13 +190,49 @@
 		return typeof value === 'string' && value.startsWith('[') && (value.includes('items]') || value.includes('props]'));
 	};
 
+	const handleContextMenu = (e: MouseEvent, column: string): void => {
+		if (column === 'key') return;
+		e.preventDefault();
+		contextMenu = { x: e.clientX, y: e.clientY, column };
+	};
+
+	const closeContextMenu = (): void => {
+		contextMenu = null;
+	};
+
+	const handleExpandColumn = (): void => {
+		if (!contextMenu) return;
+		autoResizeColumn(contextMenu.column);
+		closeContextMenu();
+	};
+
+	const handleSortByColumn = (): void => {
+		if (!contextMenu) return;
+		if (sortKey === contextMenu.column) {
+			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+		} else {
+			sortKey = contextMenu.column;
+			sortDirection = 'asc';
+		}
+		closeContextMenu();
+	};
+
+	const handleDeleteKey = (): void => {
+		if (!contextMenu) return;
+		keyToDelete = contextMenu.column;
+		showDeleteKeyPopup = true;
+		closeContextMenu();
+	};
+
 	onMount(() => {
 		document.addEventListener('mousemove', handleResize);
 		document.addEventListener('mouseup', stopResize);
+		document.addEventListener('click', closeContextMenu);
 
 		return () => {
 			document.removeEventListener('mousemove', handleResize);
 			document.removeEventListener('mouseup', stopResize);
+			document.removeEventListener('click', closeContextMenu);
 		};
 	});
 
@@ -211,6 +251,7 @@
 							class="group relative border-b-2 border-gray-200 px-4 py-3 text-left text-xs font-semibold tracking-wider text-gray-700 uppercase"
 							style="width: {columnWidths.get(column) || DEFAULT_COL_WIDTH}px;"
 							data-column={column}
+							oncontextmenu={(e) => handleContextMenu(e, column)}
 						>
 							<button
 								class="flex w-full items-center space-x-2 transition-colors hover:text-gray-900"
@@ -331,6 +372,72 @@
 		<div class="flex h-full items-center justify-center text-gray-500">No tabular data to display</div>
 	{/if}
 </div>
+
+{#if contextMenu}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="fixed z-50 w-48 rounded-lg border border-gray-200 bg-white shadow-lg"
+		style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
+		onclick={(e) => e.stopPropagation()}
+		onkeydown={() => {}}
+	>
+		<div class="py-1">
+			<button
+				class="flex w-full items-center space-x-2 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100"
+				onclick={handleExpandColumn}
+				type="button"
+			>
+				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+				</svg>
+				<span>Expand Column</span>
+			</button>
+			<button
+				class="flex w-full items-center space-x-2 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100"
+				onclick={handleSortByColumn}
+				type="button"
+			>
+				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
+					/>
+				</svg>
+				<span>Sort By</span>
+			</button>
+			<!-- <div class="my-1 border-t border-gray-200"></div>
+			<button
+				class="flex w-full items-center space-x-2 px-4 py-2 text-left text-sm text-red-700 transition-colors hover:bg-red-50"
+				onclick={handleDeleteKey}
+				type="button"
+			>
+				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+					/>
+				</svg>
+				<span>Delete Key</span>
+			</button> -->
+		</div>
+	</div>
+{/if}
+
+{#if showDeleteKeyPopup}
+	<DeleteKeyPopup
+		{data}
+		{keyToDelete}
+		onDelete={(newData) => {
+			update(newData);
+			showDeleteKeyPopup = false;
+		}}
+		onClose={() => (showDeleteKeyPopup = false)}
+	/>
+{/if}
 
 <style>
 	.line-clamp-2 {
