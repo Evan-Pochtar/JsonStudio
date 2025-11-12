@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { JSONValue, JSONPath, FlatNode } from '$lib/types.ts';
 	import { safeClone } from '$lib/utils/helpers';
-	import AddKeyPopup from './AddKeyPopup.svelte';
+	import AddKeyPopup from '../Popups/AddKeyPopup.svelte';
 
 	let {
 		focus,

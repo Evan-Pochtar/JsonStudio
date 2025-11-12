@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { TableRow, JSONValue, JSONPath } from '$lib/types.ts';
 	import { safeClone } from '$lib/utils/helpers';
-	import DeleteKeyPopup from './DeleteKeyPopup.svelte';
+	import DeleteKeyPopup from '../Popups/DeleteKeyPopup.svelte';
 
 	let {
 		focus,

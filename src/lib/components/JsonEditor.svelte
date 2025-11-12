@@ -3,13 +3,13 @@
 	import { browser } from '$app/environment';
 	import type { JSONValue, JSONObject, SearchMatch, UndoEntry } from '$lib/types.ts';
 	import { safeClone } from '$lib/utils/helpers';
-	import TableView from './TableView.svelte';
-	import TreeView from './TreeView.svelte';
-	import TextView from './TextView.svelte';
+	import TableView from './Views/TableView.svelte';
+	import TreeView from './Views/TreeView.svelte';
+	import TextView from './Views/TextView.svelte';
 	import SearchPanel from './SearchPanel.svelte';
-	import ExportPopup from './ExportPopup.svelte';
-	import FormatPopup from './FormatPopup.svelte';
-	import SortPopup from './SortPopup.svelte';
+	import ExportPopup from './Popups/ExportPopup.svelte';
+	import FormatPopup from './Popups/FormatPopup.svelte';
+	import SortPopup from './Popups/SortPopup.svelte';
 
 	let {
 		selectAll,
