@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { JSONValue, JSONPath, FlatNode } from '$lib/types.ts';
 	import { safeClone } from '$lib/utils/helpers';
+	import AddKeyPopup from './AddKeyPopup.svelte';
 
 	let {
 		focus,
@@ -17,6 +18,8 @@
 	let editingPath: string | null = $state(null);
 	let editValue: string = $state('');
 	let containerElement: HTMLInputElement | null = $state(null);
+	let showAddKeyPopup = $state(false);
+	let addKeyTargetPath: JSONPath = $state([]);
 
 	const pathToKey = (path: JSONPath): string => path.map(String).join('.');
 
@@ -82,6 +85,11 @@
 			delete current[last as keyof typeof current];
 		}
 		update(newData);
+	};
+
+	const openAddKeyPopup = (path: JSONPath): void => {
+		addKeyTargetPath = path;
+		showAddKeyPopup = true;
 	};
 
 	const cancelEditing = (): void => {
@@ -205,7 +213,7 @@
 						/>
 					{:else}
 						<span
-							class="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+							class="ml-2 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
 							ondblclick={(e) => handleDoubleClick(e, node.path, node.value)}
 							role="button"
 							tabindex="0"
@@ -233,6 +241,15 @@
 							Open
 						</button>
 					{/if}
+					{#if node.isObject}
+						<button
+							class="rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-700 transition-all duration-200 hover:bg-green-200"
+							onclick={() => openAddKeyPopup(node.path)}
+							type="button"
+						>
+							Add Key
+						</button>
+					{/if}
 					<button
 						class="rounded-md bg-red-100 px-2 py-1 text-xs font-medium text-red-700 transition-all duration-200 hover:bg-red-200"
 						onclick={() => deleteItem(node.path)}
@@ -245,3 +262,15 @@
 		{/each}
 	</div>
 </div>
+
+{#if showAddKeyPopup}
+	<AddKeyPopup
+		{data}
+		targetPath={addKeyTargetPath}
+		onAdd={(newData) => {
+			update(newData);
+			showAddKeyPopup = false;
+		}}
+		onClose={() => (showAddKeyPopup = false)}
+	/>
+{/if}
