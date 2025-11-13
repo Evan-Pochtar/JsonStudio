@@ -92,7 +92,28 @@
 
 	const updateData = (newData: JSONValue): void => {
 		addToUndoStack();
-		currentData = safeClone(newData);
+		if (focusedPath.length === 0) {
+			currentData = safeClone(newData);
+			isModified = true;
+			updateFilteredData();
+			buildSearchIndex();
+			return;
+		}
+
+		const rootClone: any = safeClone(currentData) as any;
+		let cursor: any = rootClone;
+		for (let i = 0; i < focusedPath.length - 1; i++) {
+			const key = focusedPath[i] as any;
+			if (cursor[key] == null || typeof cursor[key] !== 'object') {
+				const nextKey = focusedPath[i + 1];
+				cursor[key] = typeof nextKey === 'number' ? [] : {};
+			}
+			cursor = cursor[key];
+		}
+
+		const lastKey = focusedPath[focusedPath.length - 1] as any;
+		cursor[lastKey] = safeClone(newData);
+		currentData = rootClone;
 		isModified = true;
 		updateFilteredData();
 		buildSearchIndex();
@@ -163,12 +184,44 @@
 			filteredData = currentData;
 			return;
 		}
+
 		let data: any = currentData;
-		for (const key of focusedPath) {
-			if (data == null) {
-				data = undefined;
-				break;
+
+		for (let i = 0; i < focusedPath.length; i++) {
+			const key = focusedPath[i];
+			if (Array.isArray(data)) {
+				const isNumericKey = typeof key === 'number' || (typeof key === 'string' && /^\d+$/.test(key as string));
+				if (!isNumericKey) {
+					console.error(`Path invalid at step ${i}, array cannot be accessed with key "${key}"`);
+					focusedPath = [];
+					filteredData = currentData;
+					return;
+				}
+				const idx = typeof key === 'number' ? key : parseInt(key as string, 10);
+				if (idx < 0 || idx >= data.length) {
+					console.error(`Path invalid at step ${i}, index ${idx} out of bounds`);
+					focusedPath = [];
+					filteredData = currentData;
+					return;
+				}
+				data = data[idx];
+				continue;
 			}
+			if (data == null || typeof data !== 'object') {
+				console.error(`Path invalid at step ${i}, key "${key}" (not an object)`);
+				focusedPath = [];
+				filteredData = currentData;
+				return;
+			}
+			const hasKey = Object.prototype.hasOwnProperty.call(data, key);
+			if (!hasKey) {
+				console.error(`Path invalid at step ${i}, key "${key}"`);
+				console.error('Available keys:', Object.keys(data));
+				focusedPath = [];
+				filteredData = currentData;
+				return;
+			}
+
 			data = data[key as keyof typeof data];
 		}
 		filteredData = data;
@@ -217,7 +270,28 @@
 
 	const handleSorted = (sortedData: JSONValue): void => {
 		addToUndoStack();
-		currentData = sortedData;
+		if (focusedPath.length === 0) {
+			currentData = safeClone(sortedData);
+			isModified = true;
+			updateFilteredData();
+			buildSearchIndex();
+			return;
+		}
+
+		const rootClone: any = safeClone(currentData) as any;
+		let cursor: any = rootClone;
+		for (let i = 0; i < focusedPath.length - 1; i++) {
+			const key = focusedPath[i] as any;
+			if (cursor[key] == null || typeof cursor[key] !== 'object') {
+				const nextKey = focusedPath[i + 1];
+				cursor[key] = typeof nextKey === 'number' ? [] : {};
+			}
+			cursor = cursor[key];
+		}
+
+		const lastKey = focusedPath[focusedPath.length - 1] as any;
+		cursor[lastKey] = safeClone(sortedData);
+		currentData = rootClone;
 		isModified = true;
 		updateFilteredData();
 		buildSearchIndex();

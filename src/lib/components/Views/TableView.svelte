@@ -407,7 +407,7 @@
 				</svg>
 				<span>Sort By</span>
 			</button>
-			<!-- <div class="my-1 border-t border-gray-200"></div>
+			<div class="my-1 border-t border-gray-200"></div>
 			<button
 				class="flex w-full items-center space-x-2 px-4 py-2 text-left text-sm text-red-700 transition-colors hover:bg-red-50"
 				onclick={handleDeleteKey}
@@ -422,7 +422,7 @@
 					/>
 				</svg>
 				<span>Delete Key</span>
-			</button> -->
+			</button>
 		</div>
 	</div>
 {/if}
