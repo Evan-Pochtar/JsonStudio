@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import type { JSONValue, JSONPath, FlatNode } from '$lib/types.ts';
 	import { safeClone } from '$lib/utils/helpers';
 	import AddKeyPopup from '../Popups/AddKeyPopup.svelte';
@@ -17,9 +17,11 @@
 	let expandedNodes = $state(new Set<string>());
 	let editingPath: string | null = $state(null);
 	let editValue: string = $state('');
-	let containerElement: HTMLInputElement | null = $state(null);
+	let containerElement: HTMLTextAreaElement | null = $state(null);
 	let showAddKeyPopup = $state(false);
 	let addKeyTargetPath: JSONPath = $state([]);
+
+	const MAX_EDIT_HEIGHT = 400;
 
 	const pathToKey = (path: JSONPath): string => path.map(String).join('.');
 
@@ -45,9 +47,24 @@
 		}
 	};
 
-	const startEditing = (path: JSONPath, value: JSONValue): void => {
+	const adjustTextareaHeight = (textarea: HTMLTextAreaElement): void => {
+		textarea.style.height = 'auto';
+		const newHeight = Math.min(textarea.scrollHeight, MAX_EDIT_HEIGHT);
+		textarea.style.height = newHeight + 'px';
+	};
+
+	const startEditing = async (path: JSONPath, value: JSONValue): Promise<void> => {
 		editingPath = pathToKey(path);
 		editValue = typeof value === 'string' ? value : JSON.stringify(value);
+		
+		// Wait for the DOM to update
+		await tick();
+		
+		// Immediately adjust the height after the textarea is rendered
+		if (containerElement) {
+			adjustTextareaHeight(containerElement);
+			containerElement.focus();
+		}
 	};
 
 	const finishEditing = (path: JSONPath): void => {
@@ -152,6 +169,13 @@
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	});
 
+	// Watch for changes to containerElement and adjust height
+	$effect(() => {
+		if (containerElement && editingPath) {
+			adjustTextareaHeight(containerElement);
+		}
+	});
+
 	const visibleNodes = $derived(buildVisibleNodes());
 </script>
 
@@ -159,7 +183,7 @@
 	<div class="font-mono text-sm">
 		{#each visibleNodes as node (pathToKey(node.path))}
 			<div
-				class="group flex items-center rounded-lg transition-all duration-150 hover:bg-blue-50/50"
+				class="group flex items-start rounded-lg transition-all duration-150 hover:bg-blue-50/50"
 				style="padding-left: {node.depth * 1}rem;"
 			>
 				{#if node.hasChildren}
@@ -184,50 +208,61 @@
 					<div class="mr-2 h-6 w-6 shrink-0"></div>
 				{/if}
 
-				<div class="flex flex-1 items-center py-1.5">
-					<span
-						class="cursor-pointer rounded-md px-2 py-1 font-semibold text-blue-600 transition-all duration-200 hover:bg-blue-100"
-						ondblclick={(e) => handleDoubleClick(e, node.path, node.value)}
-						role="button"
-						tabindex="0"
-					>
-						{node.key !== null ? node.key : 'root'}
-						{#if node.isArray}
-							<span class="text-purple-600">[]</span>
-						{:else if node.isObject}
-							<span class="text-purple-600">{'{}'}</span>
-						{/if}
-					</span>
-
-					{#if editingPath === pathToKey(node.path)}
-						<input
-							type="text"
-							bind:this={containerElement}
-							bind:value={editValue}
-							onblur={() => finishEditing(node.path)}
-							onkeydown={(e) => {
-								if (e.key === 'Enter') finishEditing(node.path);
-								if (e.key === 'Escape') cancelEditing();
-							}}
-							class="ml-2 flex-1 rounded-md border border-blue-500 px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
-						/>
-					{:else}
+				<div class="flex flex-1 flex-col py-1.5">
+					<div class="flex items-start">
 						<span
-							class="ml-2 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+							class="cursor-pointer rounded-md px-2 py-1 font-semibold text-blue-600 transition-all duration-200 hover:bg-blue-100"
 							ondblclick={(e) => handleDoubleClick(e, node.path, node.value)}
 							role="button"
 							tabindex="0"
 						>
+							{node.key !== null ? node.key : 'root'}
 							{#if node.isArray}
-								{node.childCount} items
+								<span class="text-purple-600">[]</span>
 							{:else if node.isObject}
-								{node.childCount} props
-							{:else}
-								<span class="text-gray-700"
-									>{typeof node.value === 'string' ? `"${node.value}"` : String(node.value)}</span
-								>
+								<span class="text-purple-600">{'{}'}</span>
 							{/if}
 						</span>
+
+						{#if editingPath === pathToKey(node.path)}
+							<textarea
+								bind:this={containerElement}
+								bind:value={editValue}
+								onblur={() => finishEditing(node.path)}
+								oninput={(e) => adjustTextareaHeight(e.currentTarget)}
+								onkeydown={(e) => {
+									if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+										finishEditing(node.path);
+									}
+									if (e.key === 'Escape') cancelEditing();
+								}}
+								class="ml-2 min-h-[2rem] flex-1 resize-none overflow-auto rounded-md border border-blue-500 px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+								style="max-height: {MAX_EDIT_HEIGHT}px;"
+							></textarea>
+						{:else}
+							<span
+								class="ml-2 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+								ondblclick={(e) => handleDoubleClick(e, node.path, node.value)}
+								role="button"
+								tabindex="0"
+							>
+								{#if node.isArray}
+									{node.childCount} items
+								{:else if node.isObject}
+									{node.childCount} props
+								{:else}
+									<span class="text-gray-700"
+										>{typeof node.value === 'string' ? `"${node.value}"` : String(node.value)}</span
+									>
+								{/if}
+							</span>
+						{/if}
+					</div>
+
+					{#if editingPath === pathToKey(node.path)}
+						<div class="ml-2 mt-2 text-xs text-gray-500">
+							Press Ctrl+Enter to save, Esc to cancel
+						</div>
 					{/if}
 				</div>
 
