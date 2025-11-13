@@ -31,6 +31,7 @@
 	const MIN_COL_WIDTH = 60;
 	const MAX_COL_WIDTH = 800;
 	const MAX_CELL_HEIGHT = 400;
+	const RESIZE_HANDLE_WIDTH = 8;
 
 	const flattenObject = (obj: any, prefix = ''): Record<string, any> => {
 		const flattened: Record<string, any> = {};
@@ -133,6 +134,7 @@
 
 	const startResize = (e: MouseEvent, column: string): void => {
 		e.preventDefault();
+		e.stopPropagation();
 		resizingColumn = column;
 		resizeStartX = e.clientX;
 		resizeStartWidth = columnWidths.get(column) || DEFAULT_COL_WIDTH;
@@ -191,8 +193,8 @@
 	};
 
 	const handleContextMenu = (e: MouseEvent, column: string): void => {
-		if (column === 'key') return;
 		e.preventDefault();
+		e.stopPropagation();
 		contextMenu = { x: e.clientX, y: e.clientY, column };
 	};
 
@@ -238,7 +240,8 @@
 
 	const tableData = $derived(flattenForTable(data));
 	const columns = $derived(tableData.length > 0 ? Object.keys(tableData[0]).filter((k) => k !== 'path') : []);
-	const sortedData = $derived(sortKey ? sortData(tableData, sortKey, sortDirection) : tableData);
+	const sortedData = $derived(sortKey ? sortData(tableData, sortKey, sortDirection) : tableData);	
+	const isSimpleKeyValue = $derived(columns.length === 2 && columns.includes('key') && columns.includes('value'));
 </script>
 
 <div class="h-full overflow-auto">
@@ -251,10 +254,10 @@
 							class="group relative border-b-2 border-gray-200 px-4 py-3 text-left text-xs font-semibold tracking-wider text-gray-700 uppercase"
 							style="width: {columnWidths.get(column) || DEFAULT_COL_WIDTH}px;"
 							data-column={column}
-							oncontextmenu={(e) => handleContextMenu(e, column)}
 						>
 							<button
 								class="flex w-full items-center space-x-2 transition-colors hover:text-gray-900"
+								oncontextmenu={(e) => handleContextMenu(e, column)}
 								onclick={() => {
 									if (sortKey === column) {
 										sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
@@ -279,9 +282,14 @@
 								{/if}
 							</button>
 							<button
-								class="absolute top-0 right-0 bottom-0 w-2 cursor-col-resize border-0 bg-transparent p-0 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-blue-400"
+								class="absolute top-0 right-0 bottom-0 cursor-col-resize border-0 bg-transparent p-0 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-blue-400"
+								style="width: {RESIZE_HANDLE_WIDTH}px;"
 								onmousedown={(e) => startResize(e, column)}
-								ondblclick={() => autoResizeColumn(column)}
+								ondblclick={(e) => {
+									e.preventDefault();
+									e.stopPropagation();
+									autoResizeColumn(column);
+								}}
 								aria-label="Resize column"
 							></button>
 						</th>
@@ -407,22 +415,24 @@
 				</svg>
 				<span>Sort By</span>
 			</button>
-			<div class="my-1 border-t border-gray-200"></div>
-			<button
-				class="flex w-full items-center space-x-2 px-4 py-2 text-left text-sm text-red-700 transition-colors hover:bg-red-50"
-				onclick={handleDeleteKey}
-				type="button"
-			>
-				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-					/>
-				</svg>
-				<span>Delete Key</span>
-			</button>
+			{#if !isSimpleKeyValue}
+				<div class="my-1 border-t border-gray-200"></div>
+				<button
+					class="flex w-full items-center space-x-2 px-4 py-2 text-left text-sm text-red-700 transition-colors hover:bg-red-50"
+					onclick={handleDeleteKey}
+					type="button"
+				>
+					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+						/>
+					</svg>
+					<span>Delete Key</span>
+				</button>
+			{/if}
 		</div>
 	</div>
 {/if}
