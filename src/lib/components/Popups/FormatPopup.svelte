@@ -16,9 +16,7 @@
 
 	const formatOptions = [
 		{ value: 'standard', label: 'Standard (Pretty Print)', description: 'Standard JSON with configurable indentation' },
-		{ value: 'compact', label: 'Compact (Minified)', description: 'Single line, no whitespace' },
-		{ value: 'rfc8259', label: 'RFC 8259 Compliant', description: 'Internet standard format' },
-		{ value: 'ecma404', label: 'ECMA-404 Standard', description: 'JSON data interchange syntax' }
+		{ value: 'compact', label: 'Compact (Minified)', description: 'Single line, no whitespace' }
 	];
 
 	const applyFormat = (): void => {
@@ -28,10 +26,6 @@
 		switch (selectedFormat) {
 			case 'compact':
 				formatted = JSON.stringify(data);
-				break;
-			case 'rfc8259':
-			case 'ecma404':
-				formatted = JSON.stringify(data, null, indentSize);
 				break;
 			case 'standard':
 			default:
@@ -57,7 +51,6 @@
 		onkeydown={() => {}}
 	>
 		<h2 class="mb-4 text-lg font-semibold text-gray-900">Format JSON</h2>
-
 		<div class="mb-6 space-y-4">
 			{#each formatOptions as option}
 				<label class="flex cursor-pointer items-start space-x-3 rounded-lg border p-3 hover:bg-gray-50">
@@ -68,7 +61,6 @@
 					</div>
 				</label>
 			{/each}
-
 			{#if selectedFormat !== 'compact'}
 				<div class="rounded-lg border p-3">
 					<label for="indentSize" class="mb-2 block text-sm font-medium text-gray-700">Indentation Size</label>
@@ -83,7 +75,6 @@
 				</div>
 			{/if}
 		</div>
-
 		<div class="flex justify-end space-x-3">
 			<button
 				onclick={onClose}
@@ -94,7 +85,7 @@
 			</button>
 			<button
 				onclick={applyFormat}
-				class="rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-md"
+				class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow-md"
 				type="button"
 			>
 				Apply Format

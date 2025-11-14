@@ -239,7 +239,7 @@
 
 	const tableData = $derived(flattenForTable(data));
 	const columns = $derived(tableData.length > 0 ? Object.keys(tableData[0]).filter((k) => k !== 'path') : []);
-	const sortedData = $derived(sortKey ? sortData(tableData, sortKey, sortDirection) : tableData);	
+	const sortedData = $derived(sortKey ? sortData(tableData, sortKey, sortDirection) : tableData);
 	const isSimpleKeyValue = $derived(columns.length === 2 && columns.includes('key') && columns.includes('value'));
 </script>
 
@@ -250,7 +250,7 @@
 				<tr>
 					{#each columns as column}
 						<th
-							class="cursor-pointer items-center space-x-2 transition-colors hover:text-gray-900 group relative border-b-2 border-gray-200 px-4 py-3 text-xs font-semibold tracking-wider text-gray-700"
+							class="group relative cursor-pointer items-center space-x-2 border-b-2 border-gray-200 px-4 py-3 text-xs font-semibold tracking-wider text-gray-700 transition-colors hover:text-gray-900"
 							style="width: {columnWidths.get(column) || DEFAULT_COL_WIDTH}px;"
 							data-column={column}
 							oncontextmenu={(e) => handleContextMenu(e, column)}
@@ -263,7 +263,7 @@
 								}
 							}}
 						>
-							<div class="h-full w-full flex">
+							<div class="flex h-full w-full">
 								<span class="flex-1 truncate text-left" title={column}>{column}</span>
 								{#if sortKey === column}
 									<svg
