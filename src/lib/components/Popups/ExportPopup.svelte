@@ -155,7 +155,7 @@
 		const baseName = fileName.replace(/\.json$/, '');
 		switch (exportFormat) {
 			case 'json':
-				downloadFile(JSON.stringify(data, null, 2), `${baseName}.json`, 'application/json');
+				downloadFile(JSON.stringify(data), `${baseName}.json`, 'application/json');
 				break;
 			case 'csv':
 				downloadFile(convertToCSV(data), `${baseName}.csv`, 'text/csv');
