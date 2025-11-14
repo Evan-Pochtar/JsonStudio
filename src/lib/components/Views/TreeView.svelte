@@ -56,11 +56,7 @@
 	const startEditing = async (path: JSONPath, value: JSONValue): Promise<void> => {
 		editingPath = pathToKey(path);
 		editValue = typeof value === 'string' ? value : JSON.stringify(value);
-
-		// Wait for the DOM to update
 		await tick();
-
-		// Immediately adjust the height after the textarea is rendered
 		if (containerElement) {
 			adjustTextareaHeight(containerElement);
 			containerElement.focus();
@@ -169,13 +165,11 @@
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	});
 
-	// Watch for changes to containerElement and adjust height
 	$effect(() => {
 		if (containerElement && editingPath) {
 			adjustTextareaHeight(containerElement);
 		}
 	});
-
 	const visibleNodes = $derived(buildVisibleNodes());
 </script>
 
@@ -183,7 +177,7 @@
 	<div class="font-mono text-sm">
 		{#each visibleNodes as node (pathToKey(node.path))}
 			<div
-				class="group flex items-start rounded-lg transition-all duration-150 hover:bg-blue-50/50"
+				class="group flex items-center rounded-lg transition-all duration-150 hover:bg-blue-50/50"
 				style="padding-left: {node.depth * 1}rem;"
 			>
 				{#if node.hasChildren}
@@ -209,7 +203,7 @@
 				{/if}
 
 				<div class="flex flex-1 flex-col py-1.5">
-					<div class="flex items-start">
+					<div class="flex items-center">
 						<span
 							class="cursor-pointer rounded-md px-2 py-1 font-semibold text-blue-600 transition-all duration-200 hover:bg-blue-100"
 							ondblclick={(e) => handleDoubleClick(e, node.path, node.value)}
@@ -231,7 +225,7 @@
 								onblur={() => finishEditing(node.path)}
 								oninput={(e) => adjustTextareaHeight(e.currentTarget)}
 								onkeydown={(e) => {
-									if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+									if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
 										finishEditing(node.path);
 									}
 									if (e.key === 'Escape') cancelEditing();
@@ -241,7 +235,7 @@
 							></textarea>
 						{:else}
 							<span
-								class="ml-2 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+								class="ml-2 rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600"
 								ondblclick={(e) => handleDoubleClick(e, node.path, node.value)}
 								role="button"
 								tabindex="0"
@@ -260,7 +254,7 @@
 					</div>
 
 					{#if editingPath === pathToKey(node.path)}
-						<div class="mt-2 ml-2 text-xs text-gray-500">Press Ctrl+Enter to save, Esc to cancel</div>
+						<div class="mt-2 ml-2 text-xs text-gray-500">Press Ctrl+S to save, Esc to cancel</div>
 					{/if}
 				</div>
 
