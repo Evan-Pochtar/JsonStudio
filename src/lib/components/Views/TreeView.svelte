@@ -56,10 +56,10 @@
 	const startEditing = async (path: JSONPath, value: JSONValue): Promise<void> => {
 		editingPath = pathToKey(path);
 		editValue = typeof value === 'string' ? value : JSON.stringify(value);
-		
+
 		// Wait for the DOM to update
 		await tick();
-		
+
 		// Immediately adjust the height after the textarea is rendered
 		if (containerElement) {
 			adjustTextareaHeight(containerElement);
@@ -260,9 +260,7 @@
 					</div>
 
 					{#if editingPath === pathToKey(node.path)}
-						<div class="ml-2 mt-2 text-xs text-gray-500">
-							Press Ctrl+Enter to save, Esc to cancel
-						</div>
+						<div class="mt-2 ml-2 text-xs text-gray-500">Press Ctrl+Enter to save, Esc to cancel</div>
 					{/if}
 				</div>
 

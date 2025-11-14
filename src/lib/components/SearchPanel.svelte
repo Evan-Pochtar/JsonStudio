@@ -34,7 +34,7 @@
 	});
 </script>
 
-<div class="flex-1 overflow-y-auto border-b border-gray-200/80 bg-white/95 p-4 shadow-sm backdrop-blur-sm">
+<div class="no-scrollbar flex-1 overflow-y-auto border-b border-gray-200/80 bg-white/95 p-4 shadow-sm backdrop-blur-sm">
 	<div class="mb-3 flex items-center space-x-2">
 		<svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 			<path
@@ -80,11 +80,11 @@
 	{/if}
 
 	{#if searchResults.length > 0}
-		<div class="animate-in fade-in slide-in-from-top-2 mt-4 duration-300">
+		<div class="animate-in fade-in slide-in-from-top-2 mt-4 h-full duration-300">
 			<div class="mb-2 text-xs text-gray-600">
 				{searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
 			</div>
-			<div class="max-h-40 space-y-2 overflow-y-auto">
+			<div class="max-h-full space-y-2 overflow-y-auto">
 				{#each searchResults as result}
 					<button
 						class="group w-full rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3 text-left text-xs shadow-sm transition-all duration-200 hover:border-blue-300 hover:shadow-md"
@@ -111,3 +111,13 @@
 		<div class="mt-4 rounded-lg bg-gray-50 p-3 text-center text-xs text-gray-500">No results found</div>
 	{/if}
 </div>
+
+<style>
+	.no-scrollbar::-webkit-scrollbar {
+		display: none;
+	}
+	.no-scrollbar {
+		-ms-overflow-style: none; /* IE and Edge */
+		scrollbar-width: none; /* Firefox */
+	}
+</style>
