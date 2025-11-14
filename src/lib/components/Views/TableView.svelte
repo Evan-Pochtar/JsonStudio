@@ -31,7 +31,6 @@
 	const MIN_COL_WIDTH = 60;
 	const MAX_COL_WIDTH = 800;
 	const MAX_CELL_HEIGHT = 400;
-	const RESIZE_HANDLE_WIDTH = 8;
 
 	const flattenObject = (obj: any, prefix = ''): Record<string, any> => {
 		const flattened: Record<string, any> = {};
@@ -251,22 +250,20 @@
 				<tr>
 					{#each columns as column}
 						<th
-							class="group relative border-b-2 border-gray-200 px-4 py-3 text-left text-xs font-semibold tracking-wider text-gray-700 uppercase"
+							class="cursor-pointer items-center space-x-2 transition-colors hover:text-gray-900 group relative border-b-2 border-gray-200 px-4 py-3 text-xs font-semibold tracking-wider text-gray-700"
 							style="width: {columnWidths.get(column) || DEFAULT_COL_WIDTH}px;"
 							data-column={column}
+							oncontextmenu={(e) => handleContextMenu(e, column)}
+							onclick={() => {
+								if (sortKey === column) {
+									sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+								} else {
+									sortKey = column;
+									sortDirection = 'asc';
+								}
+							}}
 						>
-							<button
-								class="flex w-full items-center space-x-2 transition-colors hover:text-gray-900"
-								oncontextmenu={(e) => handleContextMenu(e, column)}
-								onclick={() => {
-									if (sortKey === column) {
-										sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-									} else {
-										sortKey = column;
-										sortDirection = 'asc';
-									}
-								}}
-							>
+							<div class="h-full w-full flex">
 								<span class="flex-1 truncate text-left" title={column}>{column}</span>
 								{#if sortKey === column}
 									<svg
@@ -280,10 +277,10 @@
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
 									</svg>
 								{/if}
-							</button>
+							</div>
 							<button
 								class="absolute top-0 right-0 bottom-0 cursor-col-resize border-0 bg-transparent p-0 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-blue-400"
-								style="width: {RESIZE_HANDLE_WIDTH}px;"
+								style="width: 5px;"
 								onmousedown={(e) => startResize(e, column)}
 								ondblclick={(e) => {
 									e.preventDefault();
