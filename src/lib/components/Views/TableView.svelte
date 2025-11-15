@@ -17,10 +17,6 @@
 
 	let sortKey: string = $state('');
 	let sortDirection: 'asc' | 'desc' = $state('asc');
-	let columnWidths: Map<string, number> = $state(new Map());
-	let resizingColumn: string | null = $state(null);
-	let resizeStartX: number = 0;
-	let resizeStartWidth: number = 0;
 	let editingCell: string | null = $state(null);
 	let expandedCells: Set<string> = $state(new Set());
 	let contextMenu: { x: number; y: number; column: string } | null = $state(null);
@@ -29,8 +25,13 @@
 
 	const DEFAULT_COL_WIDTH = 200;
 	const MIN_COL_WIDTH = 60;
-	const MAX_COL_WIDTH = 800;
+	const MAX_COL_WIDTH = 1200;
 	const MAX_CELL_HEIGHT = 400;
+
+	let columnWidths: Record<string, number> = $state({});
+	let resizingColumn: string | null = $state(null);
+	let resizeStartX = 0;
+	let resizeStartWidth = 0;
 
 	const flattenObject = (obj: any, prefix = ''): Record<string, any> => {
 		const flattened: Record<string, any> = {};
@@ -131,31 +132,9 @@
 		});
 	};
 
-	const startResize = (e: MouseEvent, column: string): void => {
-		e.preventDefault();
-		e.stopPropagation();
-		resizingColumn = column;
-		resizeStartX = e.clientX;
-		resizeStartWidth = columnWidths.get(column) || DEFAULT_COL_WIDTH;
-	};
-
-	const handleResize = (e: MouseEvent): void => {
-		if (!resizingColumn) return;
-		const delta = e.clientX - resizeStartX;
-		const newWidth = Math.max(MIN_COL_WIDTH, Math.min(MAX_COL_WIDTH, resizeStartWidth + delta));
-		const newMap = new Map(columnWidths);
-		newMap.set(resizingColumn, newWidth);
-		columnWidths = newMap;
-	};
-
-	const stopResize = (): void => {
-		resizingColumn = null;
-	};
-
 	const autoResizeColumn = (column: string): void => {
 		const cells = document.querySelectorAll(`[data-column="${column}"]`);
 		let maxWidth = MIN_COL_WIDTH;
-
 		cells.forEach((cell) => {
 			const content = cell.textContent || '';
 			const tempSpan = document.createElement('span');
@@ -170,9 +149,39 @@
 			document.body.removeChild(tempSpan);
 		});
 
-		const newMap = new Map(columnWidths);
-		newMap.set(column, Math.min(maxWidth, MAX_COL_WIDTH));
-		columnWidths = newMap;
+		columnWidths = { ...columnWidths, [column]: Math.min(maxWidth, MAX_COL_WIDTH) };
+	};
+
+	const startResize = (e: MouseEvent, column: string): void => {
+		e.preventDefault();
+		e.stopPropagation();
+		const allHeaders = document.querySelectorAll('th[data-column]');
+		const newWidths: Record<string, number> = {};
+		allHeaders.forEach((th) => {
+			const col = th.getAttribute('data-column');
+			if (col) {
+				const width = th.getBoundingClientRect().width;
+				newWidths[col] = width;
+			}
+		});
+		const th = (e.target as HTMLElement).closest('th');
+		const actualWidth = th ? th.getBoundingClientRect().width : DEFAULT_COL_WIDTH;
+
+		resizingColumn = column;
+		resizeStartX = e.clientX;
+		resizeStartWidth = actualWidth;
+		columnWidths = newWidths;
+	};
+
+	const handleMouseMove = (e: MouseEvent): void => {
+		if (!resizingColumn) return;
+		const delta = e.clientX - resizeStartX;
+		const newWidth = Math.max(MIN_COL_WIDTH, Math.min(MAX_COL_WIDTH, resizeStartWidth + delta));
+		columnWidths = { ...columnWidths, [resizingColumn]: newWidth };
+	};
+
+	const stopResize = (): void => {
+		resizingColumn = null;
 	};
 
 	const getCellKey = (rowIndex: number, column: string): string => {
@@ -226,14 +235,14 @@
 	};
 
 	onMount(() => {
-		document.addEventListener('mousemove', handleResize);
-		document.addEventListener('mouseup', stopResize);
 		document.addEventListener('click', closeContextMenu);
+		document.addEventListener('mousemove', handleMouseMove);
+		document.addEventListener('mouseup', stopResize);
 
 		return () => {
-			document.removeEventListener('mousemove', handleResize);
-			document.removeEventListener('mouseup', stopResize);
 			document.removeEventListener('click', closeContextMenu);
+			document.removeEventListener('mousemove', handleMouseMove);
+			document.removeEventListener('mouseup', stopResize);
 		};
 	});
 
@@ -243,16 +252,17 @@
 	const isSimpleKeyValue = $derived(columns.length === 2 && columns.includes('key') && columns.includes('value'));
 </script>
 
-<div class="h-full overflow-auto">
+<div class="h-full overflow-auto" class:select-none={resizingColumn} class:cursor-col-resize={resizingColumn}>
 	{#if columns.length > 0}
-		<table class="w-full table-fixed border-collapse">
+		<table class="w-full border-collapse" style="table-layout: auto;">
 			<thead class="sticky top-0 z-10 bg-gradient-to-b from-gray-50 to-gray-100 shadow-sm">
 				<tr>
 					{#each columns as column}
 						<th
 							class="group relative cursor-pointer items-center space-x-2 border-b-2 border-gray-200 px-4 py-3 text-xs font-semibold tracking-wider text-gray-700 transition-colors hover:text-gray-900"
-							style="width: {columnWidths.get(column) || DEFAULT_COL_WIDTH}px;"
 							data-column={column}
+							style="min-width: {columnWidths[column] || DEFAULT_COL_WIDTH}px; width: {columnWidths[column] ||
+								DEFAULT_COL_WIDTH}px; max-width: {columnWidths[column] || DEFAULT_COL_WIDTH}px;"
 							oncontextmenu={(e) => handleContextMenu(e, column)}
 							onclick={() => {
 								if (sortKey === column) {
@@ -279,8 +289,7 @@
 								{/if}
 							</div>
 							<button
-								class="absolute top-0 right-0 bottom-0 cursor-col-resize border-0 bg-transparent p-0 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-blue-400"
-								style="width: 5px;"
+								class="absolute top-0 right-0 bottom-0 w-[8px] cursor-col-resize border-0 bg-transparent p-0 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-blue-400"
 								onmousedown={(e) => startResize(e, column)}
 								ondblclick={(e) => {
 									e.preventDefault();
@@ -301,12 +310,7 @@
 							{@const isEditing = editingCell === cellKey}
 							{@const cellValue = typeof row[column] === 'object' ? JSON.stringify(row[column]) : (row[column] ?? '')}
 							{@const shouldTruncate = !isEditing && !expandedCells.has(cellKey)}
-							<td
-								class="relative border-r border-gray-100 px-4 py-2 text-sm text-gray-900"
-								style="width: {columnWidths.get(column) || DEFAULT_COL_WIDTH}px; max-width: {columnWidths.get(column) ||
-									DEFAULT_COL_WIDTH}px;"
-								data-column={column}
-							>
+							<td class="relative border-r border-gray-100 px-4 py-2 text-sm text-gray-900" data-column={column}>
 								{#if column === 'key'}
 									<button
 										class="w-full truncate rounded-md px-2 py-1 text-left font-medium text-blue-600 transition-all duration-200 hover:bg-blue-100"
