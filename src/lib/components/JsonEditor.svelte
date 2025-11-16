@@ -306,6 +306,12 @@
 		}
 	};
 
+	const handleNavigateBack = (): void => {
+		if (focusedPath.length > 0) {
+			focusOnPath(focusedPath.slice(0, -1));
+		}
+	};
+
 	onMount(() => {
 		if (!browser) return;
 		const handleUndo = (): void => undo();
@@ -314,11 +320,13 @@
 			if (selectAll) selectAll();
 		};
 
+		window.addEventListener('treeview:navigateback', handleNavigateBack as EventListener);
 		window.addEventListener('editor:undo', handleUndo as EventListener);
 		window.addEventListener('editor:redo', handleRedo as EventListener);
 		window.addEventListener('editor:selectall', handleSelectAll as EventListener);
 
 		return () => {
+			window.removeEventListener('treeview:navigateback', handleNavigateBack as EventListener);
 			window.removeEventListener('editor:undo', handleUndo as EventListener);
 			window.removeEventListener('editor:redo', handleRedo as EventListener);
 			window.removeEventListener('editor:selectall', handleSelectAll as EventListener);
@@ -540,6 +548,7 @@
 		{#if viewMode === 'tree'}
 			<TreeView
 				data={filteredData}
+				{focusedPath}
 				update={(e: JSONValue) => updateData(e)}
 				focus={(e: Array<string | number>) => focusOnPath([...focusedPath, ...e])}
 			/>

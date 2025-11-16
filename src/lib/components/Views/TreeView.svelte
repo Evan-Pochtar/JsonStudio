@@ -7,14 +7,16 @@
 	let {
 		focus,
 		update,
-		data
+		data,
+		focusedPath = []
 	}: {
 		focus: (e: JSONPath) => void;
 		update: (e: JSONValue) => void;
 		data: JSONValue;
+		focusedPath?: JSONPath;
 	} = $props();
 
-	let expandedNodes = $state(new Set<string>());
+	let expandedNodes = $state(new Set<string>(['root']));
 	let editingPath: string | null = $state(null);
 	let editValue: string = $state('');
 	let containerElement: HTMLTextAreaElement | null = $state(null);
@@ -23,7 +25,10 @@
 
 	const MAX_EDIT_HEIGHT = 400;
 
-	const pathToKey = (path: JSONPath): string => path.map(String).join('.');
+	const pathToKey = (path: JSONPath): string => {
+		if (path.length === 0) return 'root';
+		return path.map(String).join('.');
+	};
 
 	const toggleNode = (path: JSONPath): void => {
 		const k = pathToKey(path);
@@ -44,6 +49,12 @@
 			focus(path);
 		} else {
 			startEditing(path, value);
+		}
+	};
+
+	const navigateBack = (): void => {
+		if (focusedPath.length > 0) {
+			window.dispatchEvent(new CustomEvent('treeview:navigateback'));
 		}
 	};
 
@@ -110,6 +121,23 @@
 		editValue = '';
 	};
 
+	const getRootName = (): string => {
+		if (focusedPath.length === 0) {
+			return 'root';
+		}
+		const lastKey = focusedPath[focusedPath.length - 1];
+		return String(lastKey);
+	};
+
+	const getRootBrackets = (): string => {
+		if (Array.isArray(data)) {
+			return '[]';
+		} else if (typeof data === 'object' && data !== null) {
+			return '{}';
+		}
+		return '';
+	};
+
 	const buildVisibleNodes = (): FlatNode[] => {
 		const out: FlatNode[] = [];
 
@@ -135,7 +163,7 @@
 			out.push(node);
 
 			const k = pathToKey(path);
-			const shouldDescend = path.length === 0 || expandedNodes.has(k);
+			const shouldDescend = expandedNodes.has(k);
 			if (shouldDescend && childCount > 0) {
 				if (isArray) {
 					(value as JSONValue[]).forEach((item, i) => walk(item, [...path, i], depth + 1));
@@ -170,7 +198,9 @@
 			adjustTextareaHeight(containerElement);
 		}
 	});
+
 	const visibleNodes = $derived(buildVisibleNodes());
+	const isAtRoot = $derived(focusedPath.length === 0);
 </script>
 
 <div class="h-full overflow-auto bg-gradient-to-b from-white to-gray-50/30 p-4">
@@ -180,7 +210,43 @@
 				class="group flex items-center rounded-lg transition-all duration-150 hover:bg-blue-50/50"
 				style="padding-left: {node.depth * 1}rem;"
 			>
-				{#if node.hasChildren}
+				{#if node.path.length === 0}
+					{#if isAtRoot}
+						{#if node.hasChildren}
+							<button
+								class="mr-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-gray-400 transition-all duration-200 hover:bg-blue-100 hover:text-blue-600"
+								onclick={() => toggleNode(node.path)}
+								aria-expanded={isExpanded(node.path)}
+								type="button"
+								aria-label={isExpanded(node.path) ? 'Collapse root' : 'Expand root'}
+								title={isExpanded(node.path) ? 'Collapse root' : 'Expand root'}
+							>
+								<svg
+									class="h-3 w-3 transition-transform duration-200 {isExpanded(node.path) ? 'rotate-90' : ''}"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+								</svg>
+							</button>
+						{:else}
+							<div class="mr-2 h-6 w-6 shrink-0"></div>
+						{/if}
+					{:else}
+						<button
+							class="mr-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-gray-400 transition-all duration-200 hover:bg-blue-100 hover:text-blue-600"
+							onclick={navigateBack}
+							type="button"
+							aria-label="Navigate back"
+							title="Navigate back"
+						>
+							<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+							</svg>
+						</button>
+					{/if}
+				{:else if node.hasChildren}
 					<button
 						class="mr-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-gray-400 transition-all duration-200 hover:bg-blue-100 hover:text-blue-600"
 						onclick={() => toggleNode(node.path)}
@@ -210,11 +276,15 @@
 							role="button"
 							tabindex="0"
 						>
-							{node.key !== null ? node.key : 'root'}
-							{#if node.isArray}
-								<span class="text-purple-600">[]</span>
-							{:else if node.isObject}
-								<span class="text-purple-600">{'{}'}</span>
+							{#if node.key !== null}
+								{node.key}
+								{#if node.isArray}
+									<span class="text-purple-600">[]</span>
+								{:else if node.isObject}
+									<span class="text-purple-600">{'{}'}</span>
+								{/if}
+							{:else}
+								{getRootName()}<span class="text-purple-600">{getRootBrackets()}</span>
 							{/if}
 						</span>
 
@@ -277,13 +347,15 @@
 							Add Key
 						</button>
 					{/if}
-					<button
-						class="rounded-md bg-red-100 px-2 py-1 text-xs font-medium text-red-700 transition-all duration-200 hover:bg-red-200"
-						onclick={() => deleteItem(node.path)}
-						type="button"
-					>
-						Delete
-					</button>
+					{#if node.path.length > 0}
+						<button
+							class="rounded-md bg-red-100 px-2 py-1 text-xs font-medium text-red-700 transition-all duration-200 hover:bg-red-200"
+							onclick={() => deleteItem(node.path)}
+							type="button"
+						>
+							Delete
+						</button>
+					{/if}
 				</div>
 			</div>
 		{/each}
