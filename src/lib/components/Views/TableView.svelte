@@ -127,7 +127,18 @@
 				return direction === 'asc' ? aVal - bVal : bVal - aVal;
 			}
 
-			const compare = aVal.toString().localeCompare(bVal.toString());
+			const aStr = aVal.toString();
+			const bStr = bVal.toString();
+			const aNum = aStr.match(/^\[(\d+)\]$/);
+			const bNum = bStr.match(/^\[(\d+)\]$/);
+
+			if (aNum && bNum) {
+				const aIndex = parseInt(aNum[1], 10);
+				const bIndex = parseInt(bNum[1], 10);
+				return direction === 'asc' ? aIndex - bIndex : bIndex - aIndex;
+			}
+
+			const compare = aStr.localeCompare(bStr);
 			return direction === 'asc' ? compare : -compare;
 		});
 	};
@@ -264,7 +275,10 @@
 							style="min-width: {columnWidths[column] || DEFAULT_COL_WIDTH}px; width: {columnWidths[column] ||
 								DEFAULT_COL_WIDTH}px; max-width: {columnWidths[column] || DEFAULT_COL_WIDTH}px;"
 							oncontextmenu={(e) => handleContextMenu(e, column)}
-							onclick={() => {
+							onclick={(e) => {
+								if ((e.target as HTMLElement).closest('button[aria-label="Resize column"]')) {
+									return;
+								}
 								if (sortKey === column) {
 									sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
 								} else {
@@ -290,12 +304,16 @@
 							</div>
 							<button
 								class="absolute top-0 right-0 bottom-0 w-[8px] cursor-col-resize border-0 bg-transparent p-0 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-blue-400"
-								onmousedown={(e) => startResize(e, column)}
+								onmousedown={(e) => {
+									e.stopPropagation();
+									startResize(e, column);
+								}}
 								ondblclick={(e) => {
 									e.preventDefault();
 									e.stopPropagation();
 									autoResizeColumn(column);
 								}}
+								onclick={(e) => e.stopPropagation()}
 								aria-label="Resize column"
 							></button>
 						</th>
