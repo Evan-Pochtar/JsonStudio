@@ -406,7 +406,7 @@
 				<span>Sort Data</span>
 			</button>
 
-			<button class={TAILWIND_CLASSES.buttons.primary} onclick={() => (showExportPopup = true)} type="button">
+			<button class="w-full {TAILWIND_CLASSES.buttons.primary}" onclick={() => (showExportPopup = true)} type="button">
 				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"

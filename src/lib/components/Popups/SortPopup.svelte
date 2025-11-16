@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { JSONValue } from '$lib/types';
-	import { flattenObjectKeys, getNestedValue, safeClone } from '$lib/utils/helpers';
+	import { flattenObjectKeys, getNestedValue } from '$lib/utils/helpers';
 	import { TAILWIND_CLASSES } from '$lib/utils/constants';
 
 	let {
