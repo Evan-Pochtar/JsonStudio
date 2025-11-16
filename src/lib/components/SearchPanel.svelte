@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { JSONPath, SearchMatch } from '$lib/types.ts';
+	import type { JSONPath, SearchMatch } from '$lib/types';
 
 	let {
 		search,
@@ -13,7 +13,7 @@
 		searchResults: SearchMatch[];
 	} = $props();
 
-	let keyFilter: string = $state('');
+	let keyFilter = $state('');
 	let showAdvanced = $state(false);
 
 	const handleSearch = (): void => {
@@ -24,8 +24,7 @@
 	};
 
 	const navigateToResult = (result: SearchMatch): void => {
-		const parentPath = result.path.slice(0, -1);
-		navigate({ path: parentPath });
+		navigate({ path: result.path.slice(0, -1) });
 	};
 
 	$effect(() => {
@@ -59,6 +58,7 @@
 	<button
 		class="mt-2.5 flex items-center space-x-1.5 text-xs text-blue-600 transition-colors hover:text-blue-800"
 		onclick={() => (showAdvanced = !showAdvanced)}
+		type="button"
 	>
 		<svg
 			class="h-3.5 w-3.5 transition-transform {showAdvanced ? 'rotate-180' : ''}"
@@ -92,8 +92,11 @@
 					<button
 						class="group w-full rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3 text-left text-xs shadow-sm transition-all duration-200 hover:border-blue-300 hover:shadow-md"
 						onclick={() => navigateToResult(result)}
+						type="button"
 					>
-						<div class="font-medium text-gray-900 group-hover:text-blue-700">{result.key}</div>
+						<div class="font-medium text-gray-900 group-hover:text-blue-700">
+							{result.key}
+						</div>
 						<div class="mt-1 truncate text-gray-600">{result.value}</div>
 						<div class="mt-1 flex items-center space-x-1 text-gray-400">
 							<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import type { JSONValue } from '$lib/types.ts';
+	import type { JSONValue } from '$lib/types';
 
 	let {
 		update,
@@ -13,10 +13,10 @@
 		indentSize?: number;
 	} = $props();
 
-	let textContent: string = $state('');
+	let textContent = $state('');
 	let lineNumbers: number[] = $state([]);
 	let errorLine: number | null = $state(null);
-	let errorMessage: string = $state('');
+	let errorMessage = $state('');
 	let textarea: HTMLTextAreaElement | null = null;
 	let lastValidData: JSONValue = data;
 	let isInternalUpdate = false;
@@ -33,13 +33,12 @@
 			lastValidData = data;
 			updateLineNumbers();
 		} catch (e) {
-			console.error('Failed to stringify JSON:', e);
+			errorMessage = `Failed to stringify JSON: ${e}`;
 		}
 	};
 
 	const updateLineNumbers = (): void => {
-		const lines = textContent.split('\n');
-		lineNumbers = lines.map((_, i) => i + 1);
+		lineNumbers = textContent.split('\n').map((_, i) => i + 1);
 	};
 
 	const handleInput = (): void => {
@@ -54,13 +53,11 @@
 		} catch (e: any) {
 			const msg = e?.message ?? String(e);
 			errorMessage = msg;
-
 			const match = msg.match(/line[:\s]+(\d+)/i) || msg.match(/position\s+(\d+)/i);
 			if (match) {
 				const maybePos = parseInt(match[1], 10);
 				if (msg.toLowerCase().includes('position')) {
-					const pos = maybePos;
-					const upToPos = textContent.slice(0, pos);
+					const upToPos = textContent.slice(0, maybePos);
 					errorLine = upToPos.split('\n').length;
 				} else {
 					errorLine = maybePos;
@@ -73,62 +70,56 @@
 
 	const handleKeyDown = (e: KeyboardEvent): void => {
 		if (!textarea) return;
-
+		const start = textarea.selectionStart ?? 0;
+		const end = textarea.selectionEnd ?? 0;
 		if (e.key === 'Tab') {
 			e.preventDefault();
-			const start = textarea.selectionStart ?? 0;
-			const end = textarea.selectionEnd ?? 0;
-			const newValue = textContent.substring(0, start) + '  ' + textContent.substring(end);
-			textContent = newValue;
+			textContent = textContent.substring(0, start) + '  ' + textContent.substring(end);
 			handleInput();
 			requestAnimationFrame(() => {
-				if (!textarea) return;
-				textarea.selectionStart = textarea.selectionEnd = start + 2;
+				if (textarea) {
+					textarea.selectionStart = textarea.selectionEnd = start + 2;
+				}
 			});
 			return;
 		}
 
 		if (e.key === 'Enter') {
 			e.preventDefault();
-			const start = textarea.selectionStart ?? 0;
-			const end = textarea.selectionEnd ?? 0;
 			const beforeCursor = textContent.substring(0, start);
 			const afterCursor = textContent.substring(end);
-
 			const currentLine = beforeCursor.split('\n').pop() || '';
 			const leadingSpaces = currentLine.match(/^\s*/)?.[0] || '';
-
-			let newValue = beforeCursor + '\n' + leadingSpaces + afterCursor;
-			textContent = newValue;
+			textContent = beforeCursor + '\n' + leadingSpaces + afterCursor;
 			handleInput();
-
 			requestAnimationFrame(() => {
-				if (!textarea) return;
-				const newPos = start + 1 + leadingSpaces.length;
-				textarea.selectionStart = textarea.selectionEnd = newPos;
+				if (textarea) {
+					const newPos = start + 1 + leadingSpaces.length;
+					textarea.selectionStart = textarea.selectionEnd = newPos;
+				}
 			});
 			return;
 		}
 
-		if (e.key === '{' || e.key === '[' || e.key === '"') {
+		const closers: Record<string, string> = {
+			'{': '}',
+			'[': ']',
+			'"': '"'
+		};
+		if (e.key in closers) {
 			e.preventDefault();
-			const start = textarea.selectionStart ?? 0;
-			const end = textarea.selectionEnd ?? 0;
-			const closers: Record<string, string> = { '{': '}', '[': ']', '"': '"' };
-			const closer = closers[e.key];
-			const newValue = textContent.substring(0, start) + e.key + closer + textContent.substring(end);
-			textContent = newValue;
+			textContent = textContent.substring(0, start) + e.key + closers[e.key] + textContent.substring(end);
 			handleInput();
 			requestAnimationFrame(() => {
-				if (!textarea) return;
-				textarea.selectionStart = textarea.selectionEnd = start + 1;
+				if (textarea) {
+					textarea.selectionStart = textarea.selectionEnd = start + 1;
+				}
 			});
 		}
 	};
 
 	onMount(() => {
 		updateTextContent();
-
 		if (browser) {
 			const handleFormat = (): void => {
 				try {
@@ -198,7 +189,9 @@
 						/>
 					</svg>
 					<div class="flex-1">
-						<div class="text-sm font-medium text-red-800">JSON syntax error on line {errorLine}</div>
+						<div class="text-sm font-medium text-red-800">
+							JSON syntax error on line {errorLine}
+						</div>
 						<div class="mt-1 text-xs text-red-700">{errorMessage}</div>
 					</div>
 				</div>

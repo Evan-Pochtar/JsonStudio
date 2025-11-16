@@ -5,36 +5,39 @@
 	let { children } = $props();
 
 	onMount(() => {
-		if (browser) {
-			const handleKeydown = (e: any) => {
-				if (e.ctrlKey || e.metaKey) {
-					switch (e.key.toLowerCase()) {
-						case 's':
-							e.preventDefault();
-							window.dispatchEvent(new CustomEvent('editor:save'));
-							break;
-						case 'z':
-							if (e.shiftKey) {
-								e.preventDefault();
-								window.dispatchEvent(new CustomEvent('editor:redo'));
-							} else {
-								e.preventDefault();
-								window.dispatchEvent(new CustomEvent('editor:undo'));
-							}
-							break;
-						case 'a':
-							if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
-								e.preventDefault();
-								window.dispatchEvent(new CustomEvent('editor:selectall'));
-							}
-							break;
-					}
-				}
-			};
+		if (!browser) return;
 
-			window.addEventListener('keydown', handleKeydown);
-			return () => window.removeEventListener('keydown', handleKeydown);
-		}
+		const keyMap: Record<string, string> = {
+			s: 'editor:save',
+			a: 'editor:selectall'
+		};
+
+		const handleKeydown = (e: KeyboardEvent): void => {
+			if (!(e.ctrlKey || e.metaKey)) return;
+
+			const key = e.key.toLowerCase();
+
+			if (key === 'z') {
+				e.preventDefault();
+				const event = e.shiftKey ? 'editor:redo' : 'editor:undo';
+				window.dispatchEvent(new CustomEvent(event));
+				return;
+			}
+
+			if (key in keyMap) {
+				const shouldPrevent =
+					key !== 'a' ||
+					(document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA');
+
+				if (shouldPrevent) {
+					e.preventDefault();
+					window.dispatchEvent(new CustomEvent(keyMap[key]));
+				}
+			}
+		};
+
+		window.addEventListener('keydown', handleKeydown);
+		return () => window.removeEventListener('keydown', handleKeydown);
 	});
 </script>
 

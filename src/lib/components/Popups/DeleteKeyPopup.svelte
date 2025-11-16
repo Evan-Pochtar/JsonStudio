@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { JSONValue } from '$lib/types.ts';
+	import type { JSONValue } from '$lib/types';
+	import { TAILWIND_CLASSES } from '$lib/utils/constants';
 
 	let {
 		data,
@@ -13,23 +14,21 @@
 		onClose: () => void;
 	} = $props();
 
-	let deleteFromSiblings: boolean = $state(false);
+	let deleteFromSiblings = $state(false);
 
 	const findDuplicates = (): number => {
 		let count = 0;
 
-		const search = (obj: any) => {
+		const search = (obj: any): void => {
 			if (Array.isArray(obj)) {
 				obj.forEach((item) => {
-					if (typeof item === 'object' && item !== null && keyToDelete in item) {
+					if (item && typeof item === 'object' && keyToDelete in item) {
 						count++;
 					}
 					search(item);
 				});
-			} else if (typeof obj === 'object' && obj !== null) {
-				for (const value of Object.values(obj)) {
-					search(value);
-				}
+			} else if (obj && typeof obj === 'object') {
+				Object.values(obj).forEach(search);
 			}
 		};
 
@@ -43,24 +42,22 @@
 	const handleDelete = (): void => {
 		const newData = JSON.parse(JSON.stringify(data));
 
-		const removeKey = (obj: any) => {
+		const removeKey = (obj: any): void => {
 			if (Array.isArray(obj)) {
 				obj.forEach((item) => {
-					if (typeof item === 'object' && item !== null) {
+					if (item && typeof item === 'object') {
 						if (deleteFromSiblings && keyToDelete in item) {
 							delete item[keyToDelete];
 						}
 					}
 					removeKey(item);
 				});
-			} else if (typeof obj === 'object' && obj !== null) {
+			} else if (obj && typeof obj === 'object') {
 				if (!deleteFromSiblings && keyToDelete in obj) {
 					delete obj[keyToDelete];
 					return;
 				}
-				for (const value of Object.values(obj)) {
-					removeKey(value);
-				}
+				Object.values(obj).forEach(removeKey);
 			}
 		};
 
@@ -73,14 +70,14 @@
 
 				if (Array.isArray(obj)) {
 					for (const item of obj) {
-						if (typeof item === 'object' && item !== null && keyToDelete in item) {
+						if (item && typeof item === 'object' && keyToDelete in item) {
 							delete item[keyToDelete];
 							deleted = true;
 							return true;
 						}
 						if (removeSingle(item)) return true;
 					}
-				} else if (typeof obj === 'object' && obj !== null) {
+				} else if (obj && typeof obj === 'object') {
 					if (keyToDelete in obj) {
 						delete obj[keyToDelete];
 						deleted = true;
@@ -96,19 +93,18 @@
 		}
 
 		onDelete(newData);
-		onClose();
 	};
 </script>
 
 <div
-	class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+	class={TAILWIND_CLASSES.modals.overlay}
 	role="dialog"
 	onclick={onClose}
 	onkeydown={(e) => e.key === 'Escape' && onClose()}
 	tabindex="-1"
 >
 	<div
-		class="animate-in fade-in zoom-in-95 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl ring-1 ring-gray-200 duration-200"
+		class={TAILWIND_CLASSES.modals.container}
 		role="presentation"
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={() => {}}
@@ -127,7 +123,9 @@
 						/>
 					</svg>
 					<div>
-						<p class="text-sm font-medium text-red-800">Are you sure you want to delete "{keyToDelete}"?</p>
+						<p class="text-sm font-medium text-red-800">
+							Are you sure you want to delete "{keyToDelete}"?
+						</p>
 						{#if hasDuplicates}
 							<p class="mt-1 text-xs text-red-700">
 								This key appears {duplicateCount} times in your data.
@@ -145,7 +143,9 @@
 						<input type="checkbox" bind:checked={deleteFromSiblings} class="mt-0.5 h-4 w-4 text-blue-600" />
 						<div>
 							<span class="text-sm font-medium text-gray-900">Delete from all occurrences</span>
-							<p class="text-xs text-gray-600">Remove this key from all {duplicateCount} locations</p>
+							<p class="text-xs text-gray-600">
+								Remove this key from all {duplicateCount} locations
+							</p>
 						</div>
 					</label>
 				</div>
@@ -153,20 +153,8 @@
 		</div>
 
 		<div class="flex justify-end space-x-3">
-			<button
-				onclick={onClose}
-				class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow"
-				type="button"
-			>
-				Cancel
-			</button>
-			<button
-				onclick={handleDelete}
-				class="rounded-lg bg-gradient-to-r from-red-600 to-red-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-red-700 hover:to-red-800 hover:shadow-md"
-				type="button"
-			>
-				Delete Key
-			</button>
+			<button onclick={onClose} class={TAILWIND_CLASSES.buttons.secondary} type="button"> Cancel </button>
+			<button onclick={handleDelete} class={TAILWIND_CLASSES.buttons.danger} type="button"> Delete Key </button>
 		</div>
 	</div>
 </div>

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { JSONValue } from '$lib/types.ts';
+	import type { JSONValue } from '$lib/types';
+	import { TAILWIND_CLASSES, EDITOR_CONSTANTS } from '$lib/utils/constants';
 
 	let {
 		data,
@@ -11,46 +12,46 @@
 		onClose: () => void;
 	} = $props();
 
-	let selectedFormat: 'standard' | 'compact' | 'rfc8259' | 'ecma404' = $state('standard');
-	let indentSize: number = $state(2);
+	let selectedFormat: 'standard' | 'compact' = $state('standard');
+	let indentSize = $state(EDITOR_CONSTANTS.DEFAULT_INDENT_SIZE);
 
 	const formatOptions = [
-		{ value: 'standard', label: 'Standard (Pretty Print)', description: 'Standard JSON with configurable indentation' },
-		{ value: 'compact', label: 'Compact (Minified)', description: 'Single line, no whitespace' }
+		{
+			value: 'standard',
+			label: 'Standard (Pretty Print)',
+			description: 'Standard JSON with configurable indentation'
+		},
+		{
+			value: 'compact',
+			label: 'Compact (Minified)',
+			description: 'Single line, no whitespace'
+		}
 	];
 
 	const applyFormat = (): void => {
-		let formatted: string;
 		const finalIndent = selectedFormat === 'compact' ? 0 : indentSize;
+		const formatted = selectedFormat === 'compact' ? JSON.stringify(data) : JSON.stringify(data, null, indentSize);
 
-		switch (selectedFormat) {
-			case 'compact':
-				formatted = JSON.stringify(data);
-				break;
-			case 'standard':
-			default:
-				formatted = JSON.stringify(data, null, indentSize);
-				break;
-		}
 		onFormat(formatted, finalIndent);
 		onClose();
 	};
 </script>
 
 <div
-	class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+	class={TAILWIND_CLASSES.modals.overlay}
 	role="dialog"
 	onclick={onClose}
 	onkeydown={(e) => e.key === 'Escape' && onClose()}
 	tabindex="-1"
 >
 	<div
-		class="animate-in fade-in zoom-in-95 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl ring-1 ring-gray-200 duration-200"
+		class={TAILWIND_CLASSES.modals.container}
 		role="presentation"
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={() => {}}
 	>
 		<h2 class="mb-4 text-lg font-semibold text-gray-900">Format JSON</h2>
+
 		<div class="mb-6 space-y-4">
 			{#each formatOptions as option}
 				<label class="flex cursor-pointer items-start space-x-3 rounded-lg border p-3 hover:bg-gray-50">
@@ -61,6 +62,7 @@
 					</div>
 				</label>
 			{/each}
+
 			{#if selectedFormat !== 'compact'}
 				<div class="rounded-lg border p-3">
 					<label for="indentSize" class="mb-2 block text-sm font-medium text-gray-700">Indentation Size</label>
@@ -68,24 +70,19 @@
 						id="indentSize"
 						type="number"
 						bind:value={indentSize}
-						min="1"
-						max="8"
-						class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+						min={EDITOR_CONSTANTS.MIN_INDENT_SIZE}
+						max={EDITOR_CONSTANTS.MAX_INDENT_SIZE}
+						class={TAILWIND_CLASSES.inputs.text}
 					/>
 				</div>
 			{/if}
 		</div>
+
 		<div class="flex justify-end space-x-3">
-			<button
-				onclick={onClose}
-				class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow"
-				type="button"
-			>
-				Cancel
-			</button>
+			<button onclick={onClose} class={TAILWIND_CLASSES.buttons.secondary} type="button"> Cancel </button>
 			<button
 				onclick={applyFormat}
-				class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow-md"
+				class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow-md focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:outline-none"
 				type="button"
 			>
 				Apply Format

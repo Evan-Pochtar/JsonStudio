@@ -1,5 +1,7 @@
 <script lang="ts">
-	import type { JSONValue, JSONPath } from '$lib/types.ts';
+	import type { JSONValue, JSONPath } from '$lib/types';
+	import { safeClone, parseValue, getNestedValue } from '$lib/utils/helpers';
+	import { TAILWIND_CLASSES } from '$lib/utils/constants';
 
 	let {
 		data,
@@ -13,22 +15,15 @@
 		onClose: () => void;
 	} = $props();
 
-	let keyName: string = $state('');
-	let defaultValue: string = $state('');
-	let applyToSiblings: boolean = $state(false);
+	let keyName = $state('');
+	let defaultValue = $state('');
+	let applyToSiblings = $state(false);
 
 	const getParentArray = (): any[] | null => {
 		if (targetPath.length === 0) return null;
 
-		let current: any = data;
-		for (let i = 0; i < targetPath.length - 1; i++) {
-			current = current[targetPath[i]];
-		}
-
-		if (Array.isArray(current)) {
-			return current;
-		}
-		return null;
+		const parent = getNestedValue(data, targetPath.slice(0, -1));
+		return Array.isArray(parent) ? parent : null;
 	};
 
 	const hasSiblings = $derived.by(() => {
@@ -37,31 +32,23 @@
 	});
 
 	const handleAdd = (): void => {
-		if (!keyName.trim()) {
+		const trimmedKey = keyName.trim();
+
+		if (!trimmedKey) {
 			alert('Key name cannot be empty');
 			return;
 		}
 
-		let parsedValue: any;
-		try {
-			parsedValue = JSON.parse(defaultValue);
-		} catch {
-			parsedValue = defaultValue;
-		}
-
-		const newData = JSON.parse(JSON.stringify(data));
+		const newData = safeClone(data);
+		const parsedValue = parseValue(defaultValue);
 
 		if (applyToSiblings && hasSiblings) {
 			const parentArray = getParentArray();
 			if (parentArray) {
-				let current: any = newData;
-				for (let i = 0; i < targetPath.length - 1; i++) {
-					current = current[targetPath[i]];
-				}
-
-				current.forEach((item: any) => {
-					if (typeof item === 'object' && item !== null) {
-						item[keyName] = parsedValue;
+				const parent = getNestedValue(newData, targetPath.slice(0, -1)) as any[];
+				parent.forEach((item: any) => {
+					if (item && typeof item === 'object') {
+						item[trimmedKey] = parsedValue;
 					}
 				});
 			}
@@ -71,25 +58,24 @@
 				current = current[key];
 			}
 
-			if (typeof current === 'object' && current !== null) {
-				current[keyName] = parsedValue;
+			if (current && typeof current === 'object') {
+				current[trimmedKey] = parsedValue;
 			}
 		}
 
 		onAdd(newData);
-		onClose();
 	};
 </script>
 
 <div
-	class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+	class={TAILWIND_CLASSES.modals.overlay}
 	role="dialog"
 	onclick={onClose}
 	onkeydown={(e) => e.key === 'Escape' && onClose()}
 	tabindex="-1"
 >
 	<div
-		class="animate-in fade-in zoom-in-95 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl ring-1 ring-gray-200 duration-200"
+		class={TAILWIND_CLASSES.modals.container}
 		role="presentation"
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={() => {}}
@@ -104,7 +90,7 @@
 					type="text"
 					bind:value={keyName}
 					placeholder="e.g., newField"
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class={TAILWIND_CLASSES.inputs.text}
 				/>
 			</div>
 
@@ -115,7 +101,7 @@
 					type="text"
 					bind:value={defaultValue}
 					placeholder="e.g., 'text' or 123 or true"
-					class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class={TAILWIND_CLASSES.inputs.text}
 				/>
 				<p class="mt-1.5 text-xs text-gray-500">Can be a string, number, boolean, or JSON</p>
 			</div>
@@ -134,20 +120,8 @@
 		</div>
 
 		<div class="flex justify-end space-x-3">
-			<button
-				onclick={onClose}
-				class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow"
-				type="button"
-			>
-				Cancel
-			</button>
-			<button
-				onclick={handleAdd}
-				class="rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-md"
-				type="button"
-			>
-				Add Key
-			</button>
+			<button onclick={onClose} class={TAILWIND_CLASSES.buttons.secondary} type="button"> Cancel </button>
+			<button onclick={handleAdd} class={TAILWIND_CLASSES.buttons.success} type="button"> Add Key </button>
 		</div>
 	</div>
 </div>

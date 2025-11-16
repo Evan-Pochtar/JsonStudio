@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import type { JSONValue, JSONObject, SearchMatch, UndoEntry } from '$lib/types.ts';
-	import { safeClone } from '$lib/utils/helpers';
+	import type { JSONValue, JSONPath, JSONObject, SearchMatch, UndoEntry } from '$lib/types';
+	import { safeClone, getNestedValue, setNestedValue, validateJson } from '$lib/utils/helpers';
+	import { EDITOR_CONSTANTS, TAILWIND_CLASSES } from '$lib/utils/constants';
 	import TableView from './Views/TableView.svelte';
 	import TreeView from './Views/TreeView.svelte';
 	import TextView from './Views/TextView.svelte';
@@ -22,21 +23,17 @@
 	let showExportPopup = $state(false);
 	let showFormatPopup = $state(false);
 	let showSortPopup = $state(false);
-	let indentSize = $state(2);
-
+	let indentSize: number = $state(EDITOR_CONSTANTS.DEFAULT_INDENT_SIZE);
 	let currentData: JSONValue = {} as JSONObject;
-	let focusedPath: Array<string | number> = $state([]);
+	let focusedPath: JSONPath = $state([]);
 	let fileName = $state('untitled.json');
 	let viewMode: 'tree' | 'table' | 'text' = $state('tree');
 	let searchResults: SearchMatch[] = $state([]);
 	let isModified = $state(false);
 	let undoStack: UndoEntry[] = [];
 	let redoStack: UndoEntry[] = [];
-
 	let filteredData: JSONValue = $state({} as JSONObject);
-	let searchIndex: Map<string, SearchMatch[]> = new Map();
-
-	const MAX_UNDO_STACK = 50;
+	let searchIndex = new Map<string, SearchMatch[]>();
 
 	export const loadJson = (data: JSONValue, name = 'untitled.json'): void => {
 		currentData = safeClone(data);
@@ -54,66 +51,57 @@
 			data: safeClone(currentData),
 			path: [...focusedPath]
 		});
-		if (undoStack.length > MAX_UNDO_STACK) {
+
+		if (undoStack.length > EDITOR_CONSTANTS.MAX_UNDO_STACK) {
 			undoStack.shift();
 		}
+
 		redoStack = [];
 	};
 
 	const undo = (): void => {
-		if (undoStack.length > 0) {
-			redoStack.push({
-				data: safeClone(currentData),
-				path: [...focusedPath]
-			});
-			const previous = undoStack.pop() as UndoEntry;
-			currentData = previous.data;
-			focusedPath = previous.path;
-			isModified = true;
-			updateFilteredData();
-			buildSearchIndex();
-		}
+		if (undoStack.length === 0) return;
+
+		redoStack.push({
+			data: safeClone(currentData),
+			path: [...focusedPath]
+		});
+
+		const previous = undoStack.pop()!;
+		currentData = previous.data;
+		focusedPath = previous.path;
+		isModified = true;
+		updateFilteredData();
+		buildSearchIndex();
 	};
 
 	const redo = (): void => {
-		if (redoStack.length > 0) {
-			undoStack.push({
-				data: safeClone(currentData),
-				path: [...focusedPath]
-			});
-			const next = redoStack.pop() as UndoEntry;
-			currentData = next.data;
-			focusedPath = next.path;
-			isModified = true;
-			updateFilteredData();
-			buildSearchIndex();
-		}
+		if (redoStack.length === 0) return;
+
+		undoStack.push({
+			data: safeClone(currentData),
+			path: [...focusedPath]
+		});
+
+		const next = redoStack.pop()!;
+		currentData = next.data;
+		focusedPath = next.path;
+		isModified = true;
+		updateFilteredData();
+		buildSearchIndex();
 	};
 
 	const updateData = (newData: JSONValue): void => {
 		addToUndoStack();
+
 		if (focusedPath.length === 0) {
 			currentData = safeClone(newData);
-			isModified = true;
-			updateFilteredData();
-			buildSearchIndex();
-			return;
+		} else {
+			const rootClone = safeClone(currentData);
+			setNestedValue(rootClone, focusedPath, safeClone(newData));
+			currentData = rootClone;
 		}
 
-		const rootClone: any = safeClone(currentData) as any;
-		let cursor: any = rootClone;
-		for (let i = 0; i < focusedPath.length - 1; i++) {
-			const key = focusedPath[i] as any;
-			if (cursor[key] == null || typeof cursor[key] !== 'object') {
-				const nextKey = focusedPath[i + 1];
-				cursor[key] = typeof nextKey === 'number' ? [] : {};
-			}
-			cursor = cursor[key];
-		}
-
-		const lastKey = focusedPath[focusedPath.length - 1] as any;
-		cursor[lastKey] = safeClone(newData);
-		currentData = rootClone;
 		isModified = true;
 		updateFilteredData();
 		buildSearchIndex();
@@ -121,32 +109,36 @@
 
 	const buildSearchIndex = (): void => {
 		searchIndex.clear();
-		const indexObject = (obj: JSONValue, path: Array<string | number> = []) => {
-			if (typeof obj === 'object' && obj !== null) {
-				if (Array.isArray(obj)) {
-					obj.forEach((item, index) => {
-						indexObject(item, [...path, index]);
-					});
-				} else {
-					for (const [key, value] of Object.entries(obj as JSONObject)) {
-						const currentPath = [...path, key];
-						if (typeof value === 'string' || typeof value === 'number') {
-							const searchText = `${key}:${value}`.toLowerCase();
-							if (!searchIndex.has(searchText)) {
-								searchIndex.set(searchText, []);
-							}
-							searchIndex.get(searchText)!.push({
-								path: currentPath,
-								key,
-								value,
-								type: typeof value
-							});
+
+		const indexObject = (obj: JSONValue, path: JSONPath = []): void => {
+			if (!obj || typeof obj !== 'object') return;
+
+			if (Array.isArray(obj)) {
+				obj.forEach((item, index) => indexObject(item, [...path, index]));
+			} else {
+				Object.entries(obj as JSONObject).forEach(([key, value]) => {
+					const currentPath = [...path, key];
+
+					if (typeof value === 'string' || typeof value === 'number') {
+						const searchText = `${key}:${value}`.toLowerCase();
+
+						if (!searchIndex.has(searchText)) {
+							searchIndex.set(searchText, []);
 						}
-						indexObject(value, currentPath);
+
+						searchIndex.get(searchText)!.push({
+							path: currentPath,
+							key,
+							value,
+							type: typeof value
+						});
 					}
-				}
+
+					indexObject(value, currentPath);
+				});
 			}
 		};
+
 		indexObject(currentData);
 	};
 
@@ -160,7 +152,7 @@
 		const results: SearchMatch[] = [];
 
 		for (const [indexKey, matches] of searchIndex.entries()) {
-			if (keyFilter && keyFilter.trim()) {
+			if (keyFilter?.trim()) {
 				matches.forEach((match) => {
 					if (
 						match.key.toLowerCase() === keyFilter.toLowerCase() &&
@@ -169,14 +161,12 @@
 						results.push(match);
 					}
 				});
-			} else {
-				if (indexKey.includes(queryLower)) {
-					results.push(...matches);
-				}
+			} else if (indexKey.includes(queryLower)) {
+				results.push(...matches);
 			}
 		}
 
-		searchResults = results.slice(0, 100);
+		searchResults = results.slice(0, EDITOR_CONSTANTS.MAX_SEARCH_RESULTS);
 	};
 
 	const updateFilteredData = (): void => {
@@ -185,49 +175,18 @@
 			return;
 		}
 
-		let data: any = currentData;
+		const data = getNestedValue(currentData, focusedPath);
 
-		for (let i = 0; i < focusedPath.length; i++) {
-			const key = focusedPath[i];
-			if (Array.isArray(data)) {
-				const isNumericKey = typeof key === 'number' || (typeof key === 'string' && /^\d+$/.test(key as string));
-				if (!isNumericKey) {
-					console.error(`Path invalid at step ${i}, array cannot be accessed with key "${key}"`);
-					focusedPath = [];
-					filteredData = currentData;
-					return;
-				}
-				const idx = typeof key === 'number' ? key : parseInt(key as string, 10);
-				if (idx < 0 || idx >= data.length) {
-					console.error(`Path invalid at step ${i}, index ${idx} out of bounds`);
-					focusedPath = [];
-					filteredData = currentData;
-					return;
-				}
-				data = data[idx];
-				continue;
-			}
-			if (data == null || typeof data !== 'object') {
-				console.error(`Path invalid at step ${i}, key "${key}" (not an object)`);
-				focusedPath = [];
-				filteredData = currentData;
-				return;
-			}
-			const hasKey = Object.prototype.hasOwnProperty.call(data, key);
-			if (!hasKey) {
-				console.error(`Path invalid at step ${i}, key "${key}"`);
-				console.error('Available keys:', Object.keys(data));
-				focusedPath = [];
-				filteredData = currentData;
-				return;
-			}
-
-			data = data[key as keyof typeof data];
+		if (data === undefined) {
+			focusedPath = [];
+			filteredData = currentData;
+			return;
 		}
+
 		filteredData = data;
 	};
 
-	const focusOnPath = (path: Array<string | number>): void => {
+	const focusOnPath = (path: JSONPath): void => {
 		focusedPath = path;
 		updateFilteredData();
 	};
@@ -240,70 +199,35 @@
 			if (focusedPath.length === 0) {
 				addToUndoStack();
 				currentData = parsed;
-				isModified = true;
-				updateFilteredData();
-				buildSearchIndex();
 			} else {
-				const newData = safeClone(currentData) as any;
-				let current: any = newData;
-
-				for (let i = 0; i < focusedPath.length - 1; i++) {
-					current = current[focusedPath[i] as keyof typeof current];
-				}
-
-				if (focusedPath.length === 1) {
-					current[focusedPath[0] as keyof typeof current] = parsed;
-				} else {
-					current[focusedPath[focusedPath.length - 1] as keyof typeof current] = parsed;
-				}
-
+				const newData = safeClone(currentData);
+				setNestedValue(newData, focusedPath, parsed);
 				addToUndoStack();
 				currentData = newData;
-				isModified = true;
-				updateFilteredData();
-				buildSearchIndex();
 			}
+
+			isModified = true;
+			updateFilteredData();
+			buildSearchIndex();
 		} catch (e) {
-			console.error('Format error:', e);
+			alert('Failed to apply format');
 		}
 	};
 
 	const handleSorted = (sortedData: JSONValue): void => {
 		addToUndoStack();
+
 		if (focusedPath.length === 0) {
 			currentData = safeClone(sortedData);
-			isModified = true;
-			updateFilteredData();
-			buildSearchIndex();
-			return;
+		} else {
+			const rootClone = safeClone(currentData);
+			setNestedValue(rootClone, focusedPath, safeClone(sortedData));
+			currentData = rootClone;
 		}
 
-		const rootClone: any = safeClone(currentData) as any;
-		let cursor: any = rootClone;
-		for (let i = 0; i < focusedPath.length - 1; i++) {
-			const key = focusedPath[i] as any;
-			if (cursor[key] == null || typeof cursor[key] !== 'object') {
-				const nextKey = focusedPath[i + 1];
-				cursor[key] = typeof nextKey === 'number' ? [] : {};
-			}
-			cursor = cursor[key];
-		}
-
-		const lastKey = focusedPath[focusedPath.length - 1] as any;
-		cursor[lastKey] = safeClone(sortedData);
-		currentData = rootClone;
 		isModified = true;
 		updateFilteredData();
 		buildSearchIndex();
-	};
-
-	const validateJson = (): { valid: true } | { valid: false; error: string } => {
-		try {
-			JSON.parse(JSON.stringify(currentData));
-			return { valid: true };
-		} catch (e: any) {
-			return { valid: false, error: e?.message ?? String(e) };
-		}
 	};
 
 	const handleNavigateBack = (): void => {
@@ -314,26 +238,26 @@
 
 	onMount(() => {
 		if (!browser) return;
-		const handleUndo = (): void => undo();
-		const handleRedo = (): void => redo();
-		const handleSelectAll = (): void => {
-			if (selectAll) selectAll();
+
+		const handlers = {
+			'treeview:navigateback': handleNavigateBack,
+			'editor:undo': undo,
+			'editor:redo': redo,
+			'editor:selectall': () => selectAll?.()
 		};
 
-		window.addEventListener('treeview:navigateback', handleNavigateBack as EventListener);
-		window.addEventListener('editor:undo', handleUndo as EventListener);
-		window.addEventListener('editor:redo', handleRedo as EventListener);
-		window.addEventListener('editor:selectall', handleSelectAll as EventListener);
+		Object.entries(handlers).forEach(([event, handler]) => {
+			window.addEventListener(event, handler as EventListener);
+		});
 
 		return () => {
-			window.removeEventListener('treeview:navigateback', handleNavigateBack as EventListener);
-			window.removeEventListener('editor:undo', handleUndo as EventListener);
-			window.removeEventListener('editor:redo', handleRedo as EventListener);
-			window.removeEventListener('editor:selectall', handleSelectAll as EventListener);
+			Object.entries(handlers).forEach(([event, handler]) => {
+				window.removeEventListener(event, handler as EventListener);
+			});
 		};
 	});
 
-	const validation = $derived(validateJson());
+	const validation = $derived(validateJson(currentData));
 </script>
 
 <div class="flex h-full">
@@ -354,8 +278,9 @@
 				{#if isModified}
 					<span
 						class="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700 ring-1 ring-orange-600/20 ring-inset"
-						>Modified</span
 					>
+						Modified
+					</span>
 				{/if}
 			</div>
 			<div class="mt-2 flex items-center space-x-1.5 text-xs text-gray-500">
@@ -367,44 +292,31 @@
 						d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
 					/>
 				</svg>
-				<span>{focusedPath.length > 0 ? `${focusedPath.join('.')}` : 'Root level'}</span>
+				<span>{focusedPath.length > 0 ? focusedPath.join('.') : 'Root level'}</span>
 			</div>
 		</div>
 
 		<div class="border-b border-gray-200/80 bg-white/95 p-3 shadow-sm backdrop-blur-sm">
 			<div class="inline-flex w-full rounded-lg bg-gray-100 p-1">
-				<button
-					class="flex-1 rounded-md px-3 py-2 text-xs font-medium transition-all duration-200 {viewMode === 'tree'
-						? 'bg-white text-blue-600 shadow-sm'
-						: 'text-gray-600 hover:text-gray-900'}"
-					onclick={() => (viewMode = 'tree')}
-				>
-					Tree
-				</button>
-				<button
-					class="flex-1 rounded-md px-3 py-2 text-xs font-medium transition-all duration-200 {viewMode === 'table'
-						? 'bg-white text-blue-600 shadow-sm'
-						: 'text-gray-600 hover:text-gray-900'}"
-					onclick={() => (viewMode = 'table')}
-				>
-					Table
-				</button>
-				<button
-					class="flex-1 rounded-md px-3 py-2 text-xs font-medium transition-all duration-200 {viewMode === 'text'
-						? 'bg-white text-blue-600 shadow-sm'
-						: 'text-gray-600 hover:text-gray-900'}"
-					onclick={() => (viewMode = 'text')}
-				>
-					Text
-				</button>
+				{#each ['tree', 'table', 'text'] as mode}
+					<button
+						class="flex-1 rounded-md px-3 py-2 text-xs font-medium transition-all duration-200 {viewMode === mode
+							? 'bg-white text-blue-600 shadow-sm'
+							: 'text-gray-600 hover:text-gray-900'}"
+						onclick={() => (viewMode = mode as typeof viewMode)}
+						type="button"
+					>
+						{mode.charAt(0).toUpperCase() + mode.slice(1)}
+					</button>
+				{/each}
 			</div>
 		</div>
 
 		<SearchPanel
 			bind:searchQuery
 			{searchResults}
-			search={(e: { query: string | undefined; keyFilter: string | null }) => performSearch(e.query ?? '', e.keyFilter)}
-			navigate={(e: { path: Array<string | number> }) => focusOnPath(e.path)}
+			search={(e) => performSearch(e.query ?? '', e.keyFilter)}
+			navigate={(e) => focusOnPath(e.path)}
 		/>
 
 		{#if focusedPath.length > 0}
@@ -422,6 +334,7 @@
 					<button
 						class="group flex w-full items-center space-x-3 rounded-md bg-blue-50/30 px-3 py-2 text-left text-sm font-medium shadow-sm transition duration-150 hover:bg-blue-100 hover:shadow focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
 						onclick={() => focusOnPath([])}
+						type="button"
 					>
 						<svg
 							class="h-4 w-4 text-blue-600 transition-transform group-hover:-translate-x-0.5"
@@ -438,6 +351,7 @@
 						<button
 							class="group flex w-full items-center space-x-3 rounded-md bg-blue-50/30 px-3 py-2 text-left text-sm font-medium shadow-sm transition duration-150 hover:bg-blue-100 hover:shadow focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
 							onclick={() => focusOnPath(focusedPath.slice(0, -1))}
+							type="button"
 						>
 							<svg
 								class="h-4 w-4 text-blue-600 transition-transform group-hover:-translate-x-0.5"
@@ -456,7 +370,7 @@
 
 		<div class="space-y-2 p-4">
 			<button
-				class="group flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow"
+				class="group flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow focus:ring-2 focus:ring-gray-500/20 focus:ring-offset-2 focus:outline-none"
 				onclick={() => (showFormatPopup = true)}
 				type="button"
 			>
@@ -470,8 +384,9 @@
 				</svg>
 				<span>Format JSON</span>
 			</button>
+
 			<button
-				class="group flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow"
+				class="group flex w-full items-center justify-center space-x-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow focus:ring-2 focus:ring-gray-500/20 focus:ring-offset-2 focus:outline-none"
 				onclick={() => (showSortPopup = true)}
 				type="button"
 			>
@@ -490,17 +405,9 @@
 				</svg>
 				<span>Sort Data</span>
 			</button>
-			<button
-				class="group flex w-full items-center justify-center space-x-2 rounded-lg border border-transparent bg-gradient-to-r from-red-500 to-red-600 px-4 py-2.5 text-xs font-medium text-white shadow-sm transition-all duration-200 hover:from-red-600 hover:to-red-700 hover:shadow-md"
-				onclick={() => (showExportPopup = true)}
-				type="button"
-			>
-				<svg
-					class="h-4 w-4 transition-transform group-hover:scale-110"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
+
+			<button class={TAILWIND_CLASSES.buttons.primary} onclick={() => (showExportPopup = true)} type="button">
+				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -510,6 +417,7 @@
 				</svg>
 				<span>Download / Export</span>
 			</button>
+
 			<div
 				class="mt-4 flex items-center justify-center space-x-2 rounded-lg bg-white px-3 py-2 shadow-sm ring-1 ring-inset {validation.valid
 					? 'ring-green-600/20'
@@ -549,20 +457,21 @@
 			<TreeView
 				data={filteredData}
 				{focusedPath}
-				update={(e: JSONValue) => updateData(e)}
-				focus={(e: Array<string | number>) => focusOnPath([...focusedPath, ...e])}
+				update={updateData}
+				focus={(e) => focusOnPath([...focusedPath, ...e])}
 			/>
 		{:else if viewMode === 'table'}
 			<TableView
 				data={filteredData}
 				{searchResults}
-				update={(e: JSONValue) => updateData(e)}
-				focus={(e: Array<string | number>) => focusOnPath([...focusedPath, ...e])}
+				update={updateData}
+				focus={(e) => focusOnPath([...focusedPath, ...e])}
 			/>
 		{:else if viewMode === 'text'}
-			<TextView data={filteredData} update={(e: JSONValue) => updateData(e)} {indentSize} />
+			<TextView data={filteredData} update={updateData} {indentSize} />
 		{/if}
 	</div>
+
 	{#if showExportPopup}
 		<ExportPopup data={filteredData} {fileName} onClose={() => (showExportPopup = false)} />
 	{/if}

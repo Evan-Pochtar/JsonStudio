@@ -1,7 +1,15 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import type { JSONValue, JSONPath, FlatNode } from '$lib/types.ts';
-	import { safeClone } from '$lib/utils/helpers';
+	import type { JSONValue, JSONPath, FlatNode } from '$lib/types';
+	import {
+		safeClone,
+		pathToKey,
+		setNestedValue,
+		deleteNestedValue,
+		parseValue,
+		adjustTextareaHeight
+	} from '$lib/utils/helpers';
+	import { EDITOR_CONSTANTS } from '$lib/utils/constants';
 	import AddKeyPopup from '../Popups/AddKeyPopup.svelte';
 
 	let {
@@ -18,26 +26,15 @@
 
 	let expandedNodes = $state(new Set<string>(['root']));
 	let editingPath: string | null = $state(null);
-	let editValue: string = $state('');
+	let editValue = $state('');
 	let containerElement: HTMLTextAreaElement | null = $state(null);
 	let showAddKeyPopup = $state(false);
 	let addKeyTargetPath: JSONPath = $state([]);
 
-	const MAX_EDIT_HEIGHT = 400;
-
-	const pathToKey = (path: JSONPath): string => {
-		if (path.length === 0) return 'root';
-		return path.map(String).join('.');
-	};
-
 	const toggleNode = (path: JSONPath): void => {
-		const k = pathToKey(path);
+		const key = pathToKey(path);
 		const newSet = new Set(expandedNodes);
-		if (newSet.has(k)) {
-			newSet.delete(k);
-		} else {
-			newSet.add(k);
-		}
+		newSet.has(key) ? newSet.delete(key) : newSet.add(key);
 		expandedNodes = newSet;
 	};
 
@@ -45,23 +42,13 @@
 
 	const handleDoubleClick = (e: MouseEvent, path: JSONPath, value: JSONValue): void => {
 		e.stopPropagation();
-		if (typeof value === 'object' && value !== null) {
-			focus(path);
-		} else {
-			startEditing(path, value);
-		}
+		typeof value === 'object' && value !== null ? focus(path) : startEditing(path, value);
 	};
 
 	const navigateBack = (): void => {
 		if (focusedPath.length > 0) {
 			window.dispatchEvent(new CustomEvent('treeview:navigateback'));
 		}
-	};
-
-	const adjustTextareaHeight = (textarea: HTMLTextAreaElement): void => {
-		textarea.style.height = 'auto';
-		const newHeight = Math.min(textarea.scrollHeight, MAX_EDIT_HEIGHT);
-		textarea.style.height = newHeight + 'px';
 	};
 
 	const startEditing = async (path: JSONPath, value: JSONValue): Promise<void> => {
@@ -75,39 +62,19 @@
 	};
 
 	const finishEditing = (path: JSONPath): void => {
-		if (editingPath === null) return;
+		if (!editingPath) return;
 
-		const newData = safeClone(data) as any;
-		let current: any = newData;
-
-		for (let i = 0; i < path.length - 1; i++) {
-			current = current[path[i] as keyof typeof current];
-		}
-
-		try {
-			const parsed = JSON.parse(editValue);
-			current[path[path.length - 1] as keyof typeof current] = parsed;
-		} catch {
-			current[path[path.length - 1] as keyof typeof current] = editValue;
-		}
-
+		const newData = safeClone(data);
+		setNestedValue(newData, path, parseValue(editValue));
 		update(newData);
+
 		editingPath = null;
 		editValue = '';
 	};
 
 	const deleteItem = (path: JSONPath): void => {
-		const newData = safeClone(data) as any;
-		let current: any = newData;
-		for (let i = 0; i < path.length - 1; i++) {
-			current = current[path[i] as keyof typeof current];
-		}
-		const last = path[path.length - 1];
-		if (Array.isArray(current) && typeof last === 'number') {
-			current.splice(last, 1);
-		} else {
-			delete current[last as keyof typeof current];
-		}
+		const newData = safeClone(data);
+		deleteNestedValue(newData, path);
 		update(newData);
 	};
 
@@ -121,36 +88,27 @@
 		editValue = '';
 	};
 
-	const getRootName = (): string => {
-		if (focusedPath.length === 0) {
-			return 'root';
-		}
-		const lastKey = focusedPath[focusedPath.length - 1];
-		return String(lastKey);
-	};
+	const getRootName = (): string => (focusedPath.length === 0 ? 'root' : String(focusedPath[focusedPath.length - 1]));
 
 	const getRootBrackets = (): string => {
-		if (Array.isArray(data)) {
-			return '[]';
-		} else if (typeof data === 'object' && data !== null) {
-			return '{}';
-		}
+		if (Array.isArray(data)) return '[]';
+		if (typeof data === 'object' && data !== null) return '{}';
 		return '';
 	};
 
 	const buildVisibleNodes = (): FlatNode[] => {
-		const out: FlatNode[] = [];
+		const nodes: FlatNode[] = [];
 
-		const walk = (value: JSONValue, path: JSONPath = [], depth = 0) => {
+		const walk = (value: JSONValue, path: JSONPath = [], depth = 0): void => {
 			const isObject = typeof value === 'object' && value !== null && !Array.isArray(value);
 			const isArray = Array.isArray(value);
 			const childrenKeys = isArray
-				? (value as JSONValue[]).map((_, i) => i as number)
+				? (value as JSONValue[]).map((_, i) => i)
 				: isObject
 					? Object.keys(value as Record<string, any>)
 					: [];
 			const childCount = childrenKeys.length;
-			const node: FlatNode = {
+			nodes.push({
 				key: path.length === 0 ? null : String(path[path.length - 1]),
 				path: [...path],
 				value,
@@ -159,33 +117,29 @@
 				depth,
 				hasChildren: childCount > 0,
 				childCount
-			};
-			out.push(node);
+			});
 
-			const k = pathToKey(path);
-			const shouldDescend = expandedNodes.has(k);
+			const shouldDescend = expandedNodes.has(pathToKey(path));
 			if (shouldDescend && childCount > 0) {
 				if (isArray) {
 					(value as JSONValue[]).forEach((item, i) => walk(item, [...path, i], depth + 1));
 				} else if (isObject) {
-					for (const key of Object.keys(value as Record<string, any>)) {
-						walk((value as Record<string, any>)[key], [...path, key], depth + 1);
-					}
+					Object.keys(value as Record<string, any>).forEach((key) =>
+						walk((value as Record<string, any>)[key], [...path, key], depth + 1)
+					);
 				}
 			}
 		};
 
-		walk(data, [], 0);
-		return out;
+		walk(data);
+		return nodes;
 	};
 
 	onMount(() => {
 		const handleClickOutside = (e: MouseEvent): void => {
 			if (editingPath && containerElement && !containerElement.contains(e.target as Node)) {
 				const node = visibleNodes.find((n) => pathToKey(n.path) === editingPath);
-				if (node) {
-					finishEditing(node.path);
-				}
+				if (node) finishEditing(node.path);
 			}
 		};
 
@@ -295,13 +249,11 @@
 								onblur={() => finishEditing(node.path)}
 								oninput={(e) => adjustTextareaHeight(e.currentTarget)}
 								onkeydown={(e) => {
-									if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
-										finishEditing(node.path);
-									}
+									if (e.key === 's' && (e.ctrlKey || e.metaKey)) finishEditing(node.path);
 									if (e.key === 'Escape') cancelEditing();
 								}}
 								class="ml-2 min-h-[2rem] flex-1 resize-none overflow-auto rounded-md border border-blue-500 px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
-								style="max-height: {MAX_EDIT_HEIGHT}px;"
+								style="max-height: {EDITOR_CONSTANTS.MAX_EDIT_HEIGHT}px;"
 							></textarea>
 						{:else}
 							<span

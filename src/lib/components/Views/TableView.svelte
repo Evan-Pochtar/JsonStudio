@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { TableRow, JSONValue, JSONPath } from '$lib/types.ts';
-	import { safeClone } from '$lib/utils/helpers';
+	import type { TableRow, JSONValue, JSONPath } from '$lib/types';
+	import { safeClone, flattenObject, parseValue, setNestedValue, isComplex, sortByKey } from '$lib/utils/helpers';
+	import { EDITOR_CONSTANTS } from '$lib/utils/constants';
 	import DeleteKeyPopup from '../Popups/DeleteKeyPopup.svelte';
 
 	let {
@@ -15,38 +16,17 @@
 		searchResults: Array<{ path: JSONPath; key: string; value: any; type: string }>;
 	} = $props();
 
-	let sortKey: string = $state('');
+	let sortKey = $state('');
 	let sortDirection: 'asc' | 'desc' = $state('asc');
 	let editingCell: string | null = $state(null);
-	let expandedCells: Set<string> = $state(new Set());
+	let expandedCells = $state(new Set<string>());
 	let contextMenu: { x: number; y: number; column: string } | null = $state(null);
 	let showDeleteKeyPopup = $state(false);
 	let keyToDelete = $state('');
-
-	const DEFAULT_COL_WIDTH = 200;
-	const MIN_COL_WIDTH = 60;
-	const MAX_COL_WIDTH = 1200;
-	const MAX_CELL_HEIGHT = 400;
-
 	let columnWidths: Record<string, number> = $state({});
 	let resizingColumn: string | null = $state(null);
 	let resizeStartX = 0;
 	let resizeStartWidth = 0;
-
-	const flattenObject = (obj: any, prefix = ''): Record<string, any> => {
-		const flattened: Record<string, any> = {};
-		for (const [key, value] of Object.entries(obj)) {
-			const newKey = prefix ? `${prefix}.${key}` : key;
-			if (value && typeof value === 'object' && !Array.isArray(value)) {
-				Object.assign(flattened, flattenObject(value, newKey));
-			} else if (Array.isArray(value)) {
-				flattened[newKey] = `[${value.length} items]`;
-			} else {
-				flattened[newKey] = value;
-			}
-		}
-		return flattened;
-	};
 
 	const flattenForTable = (obj: JSONValue, prefix = ''): TableRow[] => {
 		const items: TableRow[] = [];
@@ -54,11 +34,10 @@
 		if (Array.isArray(obj)) {
 			obj.forEach((item, index) => {
 				if (typeof item === 'object' && item !== null) {
-					const flattened = flattenObject(item);
 					items.push({
 						key: `${prefix}[${index}]`,
 						path: [index],
-						...flattened
+						...flattenObject(item)
 					});
 				} else {
 					items.push({
@@ -71,28 +50,26 @@
 		} else if (typeof obj === 'object' && obj !== null) {
 			const entries = Object.entries(obj as Record<string, any>);
 
-			if (entries.length > 0) {
-				for (const [key, value] of entries) {
-					if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-						const propCount = Object.keys(value).length;
-						items.push({
-							key,
-							path: [key],
-							value: `[${propCount} props]`
-						});
-					} else if (Array.isArray(value)) {
-						items.push({
-							key,
-							path: [key],
-							value: `[${value.length} items]`
-						});
-					} else {
-						items.push({
-							key,
-							path: [key],
-							value
-						});
-					}
+			for (const [key, value] of entries) {
+				if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+					const propCount = Object.keys(value).length;
+					items.push({
+						key,
+						path: [key],
+						value: `[${propCount} props]`
+					});
+				} else if (Array.isArray(value)) {
+					items.push({
+						key,
+						path: [key],
+						value: `[${value.length} items]`
+					});
+				} else {
+					items.push({
+						key,
+						path: [key],
+						value
+					});
 				}
 			}
 		}
@@ -101,16 +78,8 @@
 	};
 
 	const updateValue = (path: JSONPath, newValue: string): void => {
-		const newData = safeClone(data) as any;
-		let current: any = newData;
-		for (let i = 0; i < path.length - 1; i++) {
-			current = current[path[i] as keyof typeof current];
-		}
-		try {
-			current[path[path.length - 1] as keyof typeof current] = JSON.parse(newValue);
-		} catch {
-			current[path[path.length - 1] as keyof typeof current] = newValue;
-		}
+		const newData = safeClone(data);
+		setNestedValue(newData, path, parseValue(newValue));
 		update(newData);
 	};
 
@@ -118,40 +87,14 @@
 		focus(path);
 	};
 
-	const sortData = (items: TableRow[], key: string, direction: 'asc' | 'desc'): TableRow[] => {
-		return [...items].sort((a, b) => {
-			const aVal = a[key] ?? '';
-			const bVal = b[key] ?? '';
-
-			if (typeof aVal === 'number' && typeof bVal === 'number') {
-				return direction === 'asc' ? aVal - bVal : bVal - aVal;
-			}
-
-			const aStr = aVal.toString();
-			const bStr = bVal.toString();
-			const aNum = aStr.match(/^\[(\d+)\]$/);
-			const bNum = bStr.match(/^\[(\d+)\]$/);
-
-			if (aNum && bNum) {
-				const aIndex = parseInt(aNum[1], 10);
-				const bIndex = parseInt(bNum[1], 10);
-				return direction === 'asc' ? aIndex - bIndex : bIndex - aIndex;
-			}
-
-			const compare = aStr.localeCompare(bStr);
-			return direction === 'asc' ? compare : -compare;
-		});
-	};
-
 	const autoResizeColumn = (column: string): void => {
 		const cells = document.querySelectorAll(`[data-column="${column}"]`);
-		let maxWidth = MIN_COL_WIDTH;
+		let maxWidth: number = EDITOR_CONSTANTS.MIN_COL_WIDTH;
+
 		cells.forEach((cell) => {
 			const content = cell.textContent || '';
 			const tempSpan = document.createElement('span');
-			tempSpan.style.visibility = 'hidden';
-			tempSpan.style.position = 'absolute';
-			tempSpan.style.whiteSpace = 'pre';
+			tempSpan.style.cssText = 'visibility:hidden;position:absolute;white-space:pre';
 			tempSpan.style.font = window.getComputedStyle(cell).font;
 			tempSpan.textContent = content;
 			document.body.appendChild(tempSpan);
@@ -160,23 +103,28 @@
 			document.body.removeChild(tempSpan);
 		});
 
-		columnWidths = { ...columnWidths, [column]: Math.min(maxWidth, MAX_COL_WIDTH) };
+		columnWidths = {
+			...columnWidths,
+			[column]: Math.min(maxWidth, EDITOR_CONSTANTS.MAX_COL_WIDTH)
+		};
 	};
 
 	const startResize = (e: MouseEvent, column: string): void => {
 		e.preventDefault();
 		e.stopPropagation();
+
 		const allHeaders = document.querySelectorAll('th[data-column]');
 		const newWidths: Record<string, number> = {};
+
 		allHeaders.forEach((th) => {
 			const col = th.getAttribute('data-column');
 			if (col) {
-				const width = th.getBoundingClientRect().width;
-				newWidths[col] = width;
+				newWidths[col] = th.getBoundingClientRect().width;
 			}
 		});
+
 		const th = (e.target as HTMLElement).closest('th');
-		const actualWidth = th ? th.getBoundingClientRect().width : DEFAULT_COL_WIDTH;
+		const actualWidth = th ? th.getBoundingClientRect().width : EDITOR_CONSTANTS.DEFAULT_COL_WIDTH;
 
 		resizingColumn = column;
 		resizeStartX = e.clientX;
@@ -187,7 +135,10 @@
 	const handleMouseMove = (e: MouseEvent): void => {
 		if (!resizingColumn) return;
 		const delta = e.clientX - resizeStartX;
-		const newWidth = Math.max(MIN_COL_WIDTH, Math.min(MAX_COL_WIDTH, resizeStartWidth + delta));
+		const newWidth = Math.max(
+			EDITOR_CONSTANTS.MIN_COL_WIDTH,
+			Math.min(EDITOR_CONSTANTS.MAX_COL_WIDTH, resizeStartWidth + delta)
+		);
 		columnWidths = { ...columnWidths, [resizingColumn]: newWidth };
 	};
 
@@ -195,9 +146,7 @@
 		resizingColumn = null;
 	};
 
-	const getCellKey = (rowIndex: number, column: string): string => {
-		return `${rowIndex}-${column}`;
-	};
+	const getCellKey = (rowIndex: number, column: string): string => `${rowIndex}-${column}`;
 
 	const startEditing = (rowIndex: number, column: string): void => {
 		editingCell = getCellKey(rowIndex, column);
@@ -205,10 +154,6 @@
 
 	const stopEditing = (): void => {
 		editingCell = null;
-	};
-
-	const isComplex = (value: any): boolean => {
-		return typeof value === 'string' && value.startsWith('[') && (value.includes('items]') || value.includes('props]'));
 	};
 
 	const handleContextMenu = (e: MouseEvent, column: string): void => {
@@ -246,20 +191,26 @@
 	};
 
 	onMount(() => {
-		document.addEventListener('click', closeContextMenu);
-		document.addEventListener('mousemove', handleMouseMove);
-		document.addEventListener('mouseup', stopResize);
+		const handlers = {
+			click: closeContextMenu,
+			mousemove: handleMouseMove,
+			mouseup: stopResize
+		};
+
+		Object.entries(handlers).forEach(([event, handler]) => {
+			document.addEventListener(event, handler as EventListener);
+		});
 
 		return () => {
-			document.removeEventListener('click', closeContextMenu);
-			document.removeEventListener('mousemove', handleMouseMove);
-			document.removeEventListener('mouseup', stopResize);
+			Object.entries(handlers).forEach(([event, handler]) => {
+				document.removeEventListener(event, handler as EventListener);
+			});
 		};
 	});
 
 	const tableData = $derived(flattenForTable(data));
 	const columns = $derived(tableData.length > 0 ? Object.keys(tableData[0]).filter((k) => k !== 'path') : []);
-	const sortedData = $derived(sortKey ? sortData(tableData, sortKey, sortDirection) : tableData);
+	const sortedData = $derived(sortKey ? sortByKey(tableData, sortKey, sortDirection) : tableData);
 	const isSimpleKeyValue = $derived(columns.length === 2 && columns.includes('key') && columns.includes('value'));
 </script>
 
@@ -272,13 +223,13 @@
 						<th
 							class="group relative cursor-pointer items-center space-x-2 border-b-2 border-gray-200 px-4 py-3 text-xs font-semibold tracking-wider text-gray-700 transition-colors hover:text-gray-900"
 							data-column={column}
-							style="min-width: {columnWidths[column] || DEFAULT_COL_WIDTH}px; width: {columnWidths[column] ||
-								DEFAULT_COL_WIDTH}px; max-width: {columnWidths[column] || DEFAULT_COL_WIDTH}px;"
+							style="min-width: {columnWidths[column] || EDITOR_CONSTANTS.DEFAULT_COL_WIDTH}px; width: {columnWidths[
+								column
+							] || EDITOR_CONSTANTS.DEFAULT_COL_WIDTH}px; max-width: {columnWidths[column] ||
+								EDITOR_CONSTANTS.DEFAULT_COL_WIDTH}px;"
 							oncontextmenu={(e) => handleContextMenu(e, column)}
 							onclick={(e) => {
-								if ((e.target as HTMLElement).closest('button[aria-label="Resize column"]')) {
-									return;
-								}
+								if ((e.target as HTMLElement).closest('button[aria-label="Resize column"]')) return;
 								if (sortKey === column) {
 									sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
 								} else {
@@ -356,12 +307,12 @@
 												onfocus={(e) => {
 													const target = e.target as HTMLTextAreaElement;
 													target.style.height = 'auto';
-													target.style.height = Math.min(target.scrollHeight, MAX_CELL_HEIGHT) + 'px';
+													target.style.height = Math.min(target.scrollHeight, EDITOR_CONSTANTS.MAX_CELL_HEIGHT) + 'px';
 												}}
 												oninput={(e) => {
 													const target = e.target as HTMLTextAreaElement;
 													target.style.height = 'auto';
-													target.style.height = Math.min(target.scrollHeight, MAX_CELL_HEIGHT) + 'px';
+													target.style.height = Math.min(target.scrollHeight, EDITOR_CONSTANTS.MAX_CELL_HEIGHT) + 'px';
 												}}
 												class="w-full resize-none overflow-auto rounded-md border border-blue-500 bg-white px-2 py-1 transition-all duration-200 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
 												rows="1"
@@ -370,16 +321,14 @@
 											<button
 												class="w-full cursor-text overflow-hidden rounded-md border-0 bg-transparent px-2 py-1 transition-all duration-200 hover:bg-gray-50"
 												class:line-clamp-2={shouldTruncate}
-												style={shouldTruncate ? '' : `max-height: ${MAX_CELL_HEIGHT}px; overflow-y: auto;`}
+												style={shouldTruncate
+													? ''
+													: `max-height: ${EDITOR_CONSTANTS.MAX_CELL_HEIGHT}px; overflow-y: auto;`}
 												onclick={() => startEditing(rowIndex, column)}
 												ondblclick={(e) => {
 													e.stopPropagation();
 													const newSet = new Set(expandedCells);
-													if (newSet.has(cellKey)) {
-														newSet.delete(cellKey);
-													} else {
-														newSet.add(cellKey);
-													}
+													newSet.has(cellKey) ? newSet.delete(cellKey) : newSet.add(cellKey);
 													expandedCells = newSet;
 												}}
 												tabindex="0"
@@ -401,12 +350,13 @@
 </div>
 
 {#if contextMenu}
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="fixed z-50 w-48 rounded-lg border border-gray-200 bg-white shadow-lg"
 		style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={() => {}}
+		role="menu"
+		tabindex="0"
 	>
 		<div class="py-1">
 			<button
