@@ -24,12 +24,15 @@
 	};
 
 	const navigateToResult = (result: SearchMatch): void => {
-		navigate({ path: result.path });
+		const parentPath = result.path.slice(0, -1);
+		navigate({ path: parentPath });
 	};
 
 	$effect(() => {
 		if (searchQuery) {
 			handleSearch();
+		} else {
+			search({ query: '', keyFilter: null });
 		}
 	});
 </script>
@@ -117,7 +120,7 @@
 		display: none;
 	}
 	.no-scrollbar {
-		-ms-overflow-style: none; /* IE and Edge */
-		scrollbar-width: none; /* Firefox */
+		-ms-overflow-style: none;
+		scrollbar-width: none;
 	}
 </style>
