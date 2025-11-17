@@ -16,16 +16,16 @@
 	let keyFilter = $state('');
 	let showAdvanced = $state(false);
 
-	const handleSearch = (): void => {
+	function handleSearch(): void {
 		search({
 			query: searchQuery,
 			keyFilter: keyFilter.trim() || null
 		});
-	};
+	}
 
-	const navigateToResult = (result: SearchMatch): void => {
+	function navigateToResult(result: SearchMatch): void {
 		navigate({ path: result.path.slice(0, -1) });
-	};
+	}
 
 	$effect(() => {
 		if (searchQuery) {

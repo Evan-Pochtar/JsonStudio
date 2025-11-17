@@ -28,13 +28,13 @@
 		}
 	];
 
-	const applyFormat = (): void => {
+	function applyFormat(): void {
 		const finalIndent = selectedFormat === 'compact' ? 0 : indentSize;
 		const formatted = selectedFormat === 'compact' ? JSON.stringify(data) : JSON.stringify(data, null, indentSize);
 
 		onFormat(formatted, finalIndent);
 		onClose();
-	};
+	}
 </script>
 
 <div

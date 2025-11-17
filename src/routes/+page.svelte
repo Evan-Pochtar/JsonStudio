@@ -3,13 +3,13 @@
 	import { browser } from '$app/environment';
 	import JsonEditor from '$lib/components/JsonEditor.svelte';
 	import type { JSONValue } from '$lib/types';
-	import { TAILWIND_CLASSES } from '$lib/utils/constants';
+	import { TAILWIND_CLASSES, sampleData } from '$lib/utils/constants';
 	import Logo from '$lib/assets/logo.png';
 
 	let jsonEditor: { loadJson?: (data: JSONValue, name?: string) => void } | null = null;
 	let fileInput: HTMLInputElement | null = null;
 
-	const handleFileUpload = async (event: Event): Promise<void> => {
+	async function handleFileUpload(event: Event): Promise<void> {
 		const input = event.target as HTMLInputElement | null;
 		const file = input?.files?.[0];
 
@@ -30,49 +30,13 @@
 		} catch (e) {
 			alert('Invalid JSON file');
 		}
-	};
+	}
 
-	const createNewFile = (): void => {
+	function createNewFile(): void {
 		jsonEditor?.loadJson?.({}, 'untitled.json');
-	};
+	}
 
 	onMount(() => {
-		const sampleData: JSONValue = {
-			users: [
-				{
-					id: 1,
-					name: 'David Smith',
-					email: 'david@example.com',
-					role: 'admin',
-					active: true
-				},
-				{
-					id: 2,
-					name: 'Sarah Johnson',
-					email: 'sarah@example.com',
-					role: 'user',
-					active: true
-				},
-				{
-					id: 3,
-					name: 'Mike Davis',
-					email: 'mike@example.com',
-					role: 'user',
-					active: false
-				}
-			],
-			settings: {
-				theme: 'dark',
-				notifications: true,
-				autoSave: false
-			},
-			metadata: {
-				version: '1.0.0',
-				created: '2024-01-01T00:00:00Z',
-				lastModified: '2024-01-15T10:30:00Z'
-			}
-		};
-
 		if (browser) {
 			jsonEditor?.loadJson?.(sampleData, 'sample.json');
 		}

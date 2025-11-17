@@ -1,5 +1,5 @@
 <svelte:head>
-	<title>404 – Not found</title>
+	<title>404 - Not found</title>
 </svelte:head>
 
 <div class="flex min-h-screen items-center justify-center bg-white px-6">

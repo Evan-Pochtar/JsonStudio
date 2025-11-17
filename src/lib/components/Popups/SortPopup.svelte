@@ -28,14 +28,13 @@
 		return [];
 	});
 
-	const applySorting = (): void => {
+	function applySorting(): void {
 		if (!sortKey) {
 			onClose();
 			return;
 		}
 
 		let sortedData: JSONValue;
-
 		if (Array.isArray(data)) {
 			sortedData = [...data].sort((a, b) => {
 				const aVal = a && typeof a === 'object' ? getNestedValue(a, sortKey) : a;
@@ -78,7 +77,7 @@
 
 		onSort(sortedData);
 		onClose();
-	};
+	}
 </script>
 
 <div

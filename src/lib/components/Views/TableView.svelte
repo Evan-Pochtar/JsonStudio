@@ -28,7 +28,7 @@
 	let resizeStartX = 0;
 	let resizeStartWidth = 0;
 
-	const flattenForTable = (obj: JSONValue, prefix = ''): TableRow[] => {
+	function flattenForTable(obj: JSONValue, prefix = ''): TableRow[] {
 		const items: TableRow[] = [];
 
 		if (Array.isArray(obj)) {
@@ -75,19 +75,19 @@
 		}
 
 		return items;
-	};
+	}
 
-	const updateValue = (path: JSONPath, newValue: string): void => {
+	function updateValue(path: JSONPath, newValue: string): void {
 		const newData = safeClone(data);
 		setNestedValue(newData, path, parseValue(newValue));
 		update(newData);
-	};
+	}
 
-	const handleDoubleClick = (path: JSONPath): void => {
+	function handleDoubleClick(path: JSONPath): void {
 		focus(path);
-	};
+	}
 
-	const autoResizeColumn = (column: string): void => {
+	function autoResizeColumn(column: string): void {
 		const cells = document.querySelectorAll(`[data-column="${column}"]`);
 		let maxWidth: number = EDITOR_CONSTANTS.MIN_COL_WIDTH;
 
@@ -107,9 +107,9 @@
 			...columnWidths,
 			[column]: Math.min(maxWidth, EDITOR_CONSTANTS.MAX_COL_WIDTH)
 		};
-	};
+	}
 
-	const startResize = (e: MouseEvent, column: string): void => {
+	function startResize(e: MouseEvent, column: string): void {
 		e.preventDefault();
 		e.stopPropagation();
 
@@ -130,9 +130,9 @@
 		resizeStartX = e.clientX;
 		resizeStartWidth = actualWidth;
 		columnWidths = newWidths;
-	};
+	}
 
-	const handleMouseMove = (e: MouseEvent): void => {
+	function handleMouseMove(e: MouseEvent): void {
 		if (!resizingColumn) return;
 		const delta = e.clientX - resizeStartX;
 		const newWidth = Math.max(
@@ -140,39 +140,41 @@
 			Math.min(EDITOR_CONSTANTS.MAX_COL_WIDTH, resizeStartWidth + delta)
 		);
 		columnWidths = { ...columnWidths, [resizingColumn]: newWidth };
-	};
+	}
 
-	const stopResize = (): void => {
+	function stopResize(): void {
 		resizingColumn = null;
-	};
+	}
 
-	const getCellKey = (rowIndex: number, column: string): string => `${rowIndex}-${column}`;
+	function getCellKey(rowIndex: number, column: string): string {
+		return `${rowIndex}-${column}`;
+	}
 
-	const startEditing = (rowIndex: number, column: string): void => {
+	function startEditing(rowIndex: number, column: string): void {
 		editingCell = getCellKey(rowIndex, column);
-	};
+	}
 
-	const stopEditing = (): void => {
+	function stopEditing(): void {
 		editingCell = null;
-	};
+	}
 
-	const handleContextMenu = (e: MouseEvent, column: string): void => {
+	function handleContextMenu(e: MouseEvent, column: string): void {
 		e.preventDefault();
 		e.stopPropagation();
 		contextMenu = { x: e.clientX, y: e.clientY, column };
-	};
+	}
 
-	const closeContextMenu = (): void => {
+	function closeContextMenu(): void {
 		contextMenu = null;
-	};
+	}
 
-	const handleExpandColumn = (): void => {
+	function handleExpandColumn(): void {
 		if (!contextMenu) return;
 		autoResizeColumn(contextMenu.column);
 		closeContextMenu();
-	};
+	}
 
-	const handleSortByColumn = (): void => {
+	function handleSortByColumn(): void {
 		if (!contextMenu) return;
 		if (sortKey === contextMenu.column) {
 			sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
@@ -181,14 +183,14 @@
 			sortDirection = 'asc';
 		}
 		closeContextMenu();
-	};
+	}
 
-	const handleDeleteKey = (): void => {
+	function handleDeleteKey(): void {
 		if (!contextMenu) return;
 		keyToDelete = contextMenu.column;
 		showDeleteKeyPopup = true;
 		closeContextMenu();
-	};
+	}
 
 	onMount(() => {
 		const handlers = {

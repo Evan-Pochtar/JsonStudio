@@ -16,10 +16,12 @@
 
 	let deleteFromSiblings = $state(false);
 
-	const findDuplicates = (): number => {
-		let count = 0;
+	const duplicateCount = $derived(findDuplicates());
+	const hasDuplicates = $derived(duplicateCount > 1);
 
-		const search = (obj: any): void => {
+	function findDuplicates(): number {
+		let count = 0;
+		function search(obj: any): void {
 			if (Array.isArray(obj)) {
 				obj.forEach((item) => {
 					if (item && typeof item === 'object' && keyToDelete in item) {
@@ -30,16 +32,13 @@
 			} else if (obj && typeof obj === 'object') {
 				Object.values(obj).forEach(search);
 			}
-		};
+		}
 
 		search(data);
 		return count;
-	};
+	}
 
-	const duplicateCount = $derived(findDuplicates());
-	const hasDuplicates = $derived(duplicateCount > 1);
-
-	const handleDelete = (): void => {
+	function handleDelete(): void {
 		const newData = JSON.parse(JSON.stringify(data));
 
 		const removeKey = (obj: any): void => {
@@ -91,9 +90,8 @@
 			};
 			removeSingle(newData);
 		}
-
 		onDelete(newData);
-	};
+	}
 </script>
 
 <div

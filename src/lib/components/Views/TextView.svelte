@@ -21,7 +21,7 @@
 	let lastValidData: JSONValue = data;
 	let isInternalUpdate = false;
 
-	const updateTextContent = (): void => {
+	function updateTextContent(): void {
 		if (isInternalUpdate) {
 			isInternalUpdate = false;
 			return;
@@ -35,13 +35,13 @@
 		} catch (e) {
 			errorMessage = `Failed to stringify JSON: ${e}`;
 		}
-	};
+	}
 
-	const updateLineNumbers = (): void => {
+	function updateLineNumbers(): void {
 		lineNumbers = textContent.split('\n').map((_, i) => i + 1);
-	};
+	}
 
-	const handleInput = (): void => {
+	function handleInput(): void {
 		updateLineNumbers();
 		isInternalUpdate = true;
 		try {
@@ -66,9 +66,9 @@
 				errorLine = null;
 			}
 		}
-	};
+	}
 
-	const handleKeyDown = (e: KeyboardEvent): void => {
+	function handleKeyDown(e: KeyboardEvent): void {
 		if (!textarea) return;
 		const start = textarea.selectionStart ?? 0;
 		const end = textarea.selectionEnd ?? 0;
@@ -116,12 +116,12 @@
 				}
 			});
 		}
-	};
+	}
 
 	onMount(() => {
 		updateTextContent();
 		if (browser) {
-			const handleFormat = (): void => {
+			function handleFormat(): void {
 				try {
 					const parsed = JSON.parse(textContent);
 					textContent = JSON.stringify(parsed, null, indentSize);
@@ -136,7 +136,7 @@
 				} catch (e: any) {
 					errorMessage = e?.message ?? String(e);
 				}
-			};
+			}
 			window.addEventListener('editor:format', handleFormat as EventListener);
 			return () => window.removeEventListener('editor:format', handleFormat as EventListener);
 		}

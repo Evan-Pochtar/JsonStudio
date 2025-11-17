@@ -15,7 +15,7 @@
 
 	let exportFormat: 'json' | 'csv' | 'xlsx' = $state('json');
 
-	const convertToCSV = (data: JSONValue): string => {
+	function convertToCSV(data: JSONValue): string {
 		if (Array.isArray(data)) {
 			if (data.length === 0) return '';
 
@@ -52,33 +52,28 @@
 		}
 
 		return '';
-	};
+	}
 
-	const convertToXLSX = async (data: JSONValue): Promise<Blob> => {
+	async function convertToXLSX(data: JSONValue): Promise<Blob> {
 		const rowsSrc: Record<string, any>[] = Array.isArray(data)
 			? data.map((item) => (item && typeof item === 'object' ? flattenObject(item) : { value: item }))
 			: data && typeof data === 'object'
 				? [flattenObject(data)]
 				: [{ value: data }];
-
 		if (rowsSrc.length === 0) {
 			return new Blob([new Uint8Array(0)], { type: FILE_TYPES.xlsx.mime });
 		}
 
 		const complexKeys = new Set<string>();
 		const normalizedRows: Record<string, string>[] = [];
-
 		for (const row of rowsSrc) {
 			const norm: Record<string, string> = {};
-
 			for (const key of Object.keys(row)) {
 				const v = row[key];
-
 				if (v == null) {
 					norm[key] = '';
 					continue;
 				}
-
 				if (Array.isArray(v)) {
 					if (v.every((el) => el == null || typeof el !== 'object')) {
 						norm[key] = v.map((el) => (el == null ? '' : String(el))).join(', ');
@@ -87,21 +82,17 @@
 					}
 					continue;
 				}
-
 				if (typeof v === 'object') {
 					complexKeys.add(key);
 					continue;
 				}
-
 				norm[key] = String(v);
 			}
-
 			normalizedRows.push(norm);
 		}
 
 		const allKeys = Array.from(new Set(normalizedRows.flatMap((r) => Object.keys(r))));
 		const headers = allKeys.filter((k) => !complexKeys.has(k));
-
 		if (headers.length === 0) {
 			const aoa = [['empty'], ['']];
 			const XLSX = (await import('xlsx')).default || (await import('xlsx'));
@@ -112,7 +103,6 @@
 		}
 
 		const aoa = [headers];
-
 		for (const r of normalizedRows) {
 			const rowArr = headers.map((h) => {
 				const cell = r[h] ?? '';
@@ -127,11 +117,10 @@
 		const wb = { Sheets: { Sheet1: sheet }, SheetNames: ['Sheet1'] };
 		const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 		return new Blob([wbout], { type: FILE_TYPES.xlsx.mime });
-	};
+	}
 
-	const handleExport = async (): Promise<void> => {
+	async function handleExport(): Promise<void> {
 		const baseName = removeFileExtension(fileName);
-
 		switch (exportFormat) {
 			case 'json':
 				downloadFile(JSON.stringify(data), `${baseName}${FILE_TYPES.json.extension}`, FILE_TYPES.json.mime);
@@ -148,9 +137,8 @@
 				}
 				break;
 		}
-
 		onClose();
-	};
+	}
 </script>
 
 <div

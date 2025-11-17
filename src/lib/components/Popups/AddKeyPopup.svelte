@@ -19,21 +19,20 @@
 	let defaultValue = $state('');
 	let applyToSiblings = $state(false);
 
-	const getParentArray = (): any[] | null => {
-		if (targetPath.length === 0) return null;
-
-		const parent = getNestedValue(data, targetPath.slice(0, -1));
-		return Array.isArray(parent) ? parent : null;
-	};
-
 	const hasSiblings = $derived.by(() => {
 		const parent = getParentArray();
 		return parent && parent.length > 1;
 	});
 
-	const handleAdd = (): void => {
-		const trimmedKey = keyName.trim();
+	function getParentArray(): any[] | null {
+		if (targetPath.length === 0) return null;
 
+		const parent = getNestedValue(data, targetPath.slice(0, -1));
+		return Array.isArray(parent) ? parent : null;
+	}
+
+	function handleAdd(): void {
+		const trimmedKey = keyName.trim();
 		if (!trimmedKey) {
 			alert('Key name cannot be empty');
 			return;
@@ -41,7 +40,6 @@
 
 		const newData = safeClone(data);
 		const parsedValue = parseValue(defaultValue);
-
 		if (applyToSiblings && hasSiblings) {
 			const parentArray = getParentArray();
 			if (parentArray) {
@@ -57,14 +55,12 @@
 			for (const key of targetPath) {
 				current = current[key];
 			}
-
 			if (current && typeof current === 'object') {
 				current[trimmedKey] = parsedValue;
 			}
 		}
-
 		onAdd(newData);
-	};
+	}
 </script>
 
 <div

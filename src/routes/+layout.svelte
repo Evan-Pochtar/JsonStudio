@@ -12,11 +12,10 @@
 			a: 'editor:selectall'
 		};
 
-		const handleKeydown = (e: KeyboardEvent): void => {
+		function handleKeydown(e: KeyboardEvent): void {
 			if (!(e.ctrlKey || e.metaKey)) return;
 
 			const key = e.key.toLowerCase();
-
 			if (key === 'z') {
 				e.preventDefault();
 				const event = e.shiftKey ? 'editor:redo' : 'editor:undo';
@@ -34,7 +33,7 @@
 					window.dispatchEvent(new CustomEvent(keyMap[key]));
 				}
 			}
-		};
+		}
 
 		window.addEventListener('keydown', handleKeydown);
 		return () => window.removeEventListener('keydown', handleKeydown);

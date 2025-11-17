@@ -31,27 +31,29 @@
 	let showAddKeyPopup = $state(false);
 	let addKeyTargetPath: JSONPath = $state([]);
 
-	const toggleNode = (path: JSONPath): void => {
+	function toggleNode(path: JSONPath): void {
 		const key = pathToKey(path);
 		const newSet = new Set(expandedNodes);
 		newSet.has(key) ? newSet.delete(key) : newSet.add(key);
 		expandedNodes = newSet;
-	};
+	}
 
-	const isExpanded = (path: JSONPath): boolean => expandedNodes.has(pathToKey(path));
+	function isExpanded(path: JSONPath): boolean {
+		return expandedNodes.has(pathToKey(path));
+	}
 
-	const handleDoubleClick = (e: MouseEvent, path: JSONPath, value: JSONValue): void => {
+	function handleDoubleClick(e: MouseEvent, path: JSONPath, value: JSONValue): void {
 		e.stopPropagation();
 		typeof value === 'object' && value !== null ? focus(path) : startEditing(path, value);
-	};
+	}
 
-	const navigateBack = (): void => {
+	function navigateBack(): void {
 		if (focusedPath.length > 0) {
 			window.dispatchEvent(new CustomEvent('treeview:navigateback'));
 		}
-	};
+	}
 
-	const startEditing = async (path: JSONPath, value: JSONValue): Promise<void> => {
+	async function startEditing(path: JSONPath, value: JSONValue): Promise<void> {
 		editingPath = pathToKey(path);
 		editValue = typeof value === 'string' ? value : JSON.stringify(value);
 		await tick();
@@ -59,9 +61,9 @@
 			adjustTextareaHeight(containerElement);
 			containerElement.focus();
 		}
-	};
+	}
 
-	const finishEditing = (path: JSONPath): void => {
+	function finishEditing(path: JSONPath): void {
 		if (!editingPath) return;
 
 		const newData = safeClone(data);
@@ -70,36 +72,38 @@
 
 		editingPath = null;
 		editValue = '';
-	};
+	}
 
-	const deleteItem = (path: JSONPath): void => {
+	function deleteItem(path: JSONPath): void {
 		const newData = safeClone(data);
 		deleteNestedValue(newData, path);
 		update(newData);
-	};
+	}
 
-	const openAddKeyPopup = (path: JSONPath): void => {
+	function openAddKeyPopup(path: JSONPath): void {
 		addKeyTargetPath = path;
 		showAddKeyPopup = true;
-	};
+	}
 
-	const cancelEditing = (): void => {
+	function cancelEditing(): void {
 		editingPath = null;
 		editValue = '';
-	};
+	}
 
-	const getRootName = (): string => (focusedPath.length === 0 ? 'root' : String(focusedPath[focusedPath.length - 1]));
+	function getRootName(): string {
+		return focusedPath.length === 0 ? 'root' : String(focusedPath[focusedPath.length - 1]);
+	}
 
-	const getRootBrackets = (): string => {
+	function getRootBrackets(): string {
 		if (Array.isArray(data)) return '[]';
 		if (typeof data === 'object' && data !== null) return '{}';
 		return '';
-	};
+	}
 
-	const buildVisibleNodes = (): FlatNode[] => {
+	function buildVisibleNodes(): FlatNode[] {
 		const nodes: FlatNode[] = [];
 
-		const walk = (value: JSONValue, path: JSONPath = [], depth = 0): void => {
+		function walk(value: JSONValue, path: JSONPath = [], depth = 0): void {
 			const isObject = typeof value === 'object' && value !== null && !Array.isArray(value);
 			const isArray = Array.isArray(value);
 			const childrenKeys = isArray
@@ -129,11 +133,11 @@
 					);
 				}
 			}
-		};
+		}
 
 		walk(data);
 		return nodes;
-	};
+	}
 
 	onMount(() => {
 		const handleClickOutside = (e: MouseEvent): void => {

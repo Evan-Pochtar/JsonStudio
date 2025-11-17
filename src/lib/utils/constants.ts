@@ -1,3 +1,5 @@
+import type { JSONValue } from '$lib/types';
+
 export const EDITOR_CONSTANTS = {
 	DEFAULT_COL_WIDTH: 200,
 	MIN_COL_WIDTH: 60,
@@ -47,3 +49,39 @@ export const FILE_TYPES = {
 		extension: '.xlsx'
 	}
 } as const;
+
+export const sampleData: JSONValue = {
+	users: [
+		{
+			id: 1,
+			name: 'David Smith',
+			email: 'david@example.com',
+			role: 'admin',
+			active: true
+		},
+		{
+			id: 2,
+			name: 'Sarah Johnson',
+			email: 'sarah@example.com',
+			role: 'user',
+			active: true
+		},
+		{
+			id: 3,
+			name: 'Mike Davis',
+			email: 'mike@example.com',
+			role: 'user',
+			active: false
+		}
+	],
+	settings: {
+		theme: 'dark',
+		notifications: true,
+		autoSave: false
+	},
+	metadata: {
+		version: '1.0.0',
+		created: '2024-01-01T00:00:00Z',
+		lastModified: '2024-01-15T10:30:00Z'
+	}
+};

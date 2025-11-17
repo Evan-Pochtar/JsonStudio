@@ -35,7 +35,7 @@
 	let filteredData: JSONValue = $state({} as JSONObject);
 	let searchIndex = new Map<string, SearchMatch[]>();
 
-	export const loadJson = (data: JSONValue, name = 'untitled.json'): void => {
+	export function loadJson(data: JSONValue, name = 'untitled.json'): void {
 		currentData = safeClone(data);
 		fileName = name;
 		focusedPath = [];
@@ -44,22 +44,20 @@
 		redoStack = [];
 		updateFilteredData();
 		buildSearchIndex();
-	};
+	}
 
-	const addToUndoStack = (): void => {
+	function addToUndoStack(): void {
 		undoStack.push({
 			data: safeClone(currentData),
 			path: [...focusedPath]
 		});
-
 		if (undoStack.length > EDITOR_CONSTANTS.MAX_UNDO_STACK) {
 			undoStack.shift();
 		}
-
 		redoStack = [];
-	};
+	}
 
-	const undo = (): void => {
+	function undo(): void {
 		if (undoStack.length === 0) return;
 
 		redoStack.push({
@@ -73,9 +71,9 @@
 		isModified = true;
 		updateFilteredData();
 		buildSearchIndex();
-	};
+	}
 
-	const redo = (): void => {
+	function redo(): void {
 		if (redoStack.length === 0) return;
 
 		undoStack.push({
@@ -89,11 +87,10 @@
 		isModified = true;
 		updateFilteredData();
 		buildSearchIndex();
-	};
+	}
 
-	const updateData = (newData: JSONValue): void => {
+	function updateData(newData: JSONValue): void {
 		addToUndoStack();
-
 		if (focusedPath.length === 0) {
 			currentData = safeClone(newData);
 		} else {
@@ -105,12 +102,12 @@
 		isModified = true;
 		updateFilteredData();
 		buildSearchIndex();
-	};
+	}
 
-	const buildSearchIndex = (): void => {
+	function buildSearchIndex(): void {
 		searchIndex.clear();
 
-		const indexObject = (obj: JSONValue, path: JSONPath = []): void => {
+		function indexObject(obj: JSONValue, path: JSONPath = []): void {
 			if (!obj || typeof obj !== 'object') return;
 
 			if (Array.isArray(obj)) {
@@ -118,14 +115,11 @@
 			} else {
 				Object.entries(obj as JSONObject).forEach(([key, value]) => {
 					const currentPath = [...path, key];
-
 					if (typeof value === 'string' || typeof value === 'number') {
 						const searchText = `${key}:${value}`.toLowerCase();
-
 						if (!searchIndex.has(searchText)) {
 							searchIndex.set(searchText, []);
 						}
-
 						searchIndex.get(searchText)!.push({
 							path: currentPath,
 							key,
@@ -133,16 +127,14 @@
 							type: typeof value
 						});
 					}
-
 					indexObject(value, currentPath);
 				});
 			}
-		};
-
+		}
 		indexObject(currentData);
-	};
+	}
 
-	const performSearch = (query: string, keyFilter: string | null = null): void => {
+	function performSearch(query: string, keyFilter: string | null = null): void {
 		if (!query.trim()) {
 			searchResults = [];
 			return;
@@ -150,7 +142,6 @@
 
 		const queryLower = query.toLowerCase();
 		const results: SearchMatch[] = [];
-
 		for (const [indexKey, matches] of searchIndex.entries()) {
 			if (keyFilter?.trim()) {
 				matches.forEach((match) => {
@@ -167,16 +158,15 @@
 		}
 
 		searchResults = results.slice(0, EDITOR_CONSTANTS.MAX_SEARCH_RESULTS);
-	};
+	}
 
-	const updateFilteredData = (): void => {
+	function updateFilteredData(): void {
 		if (focusedPath.length === 0) {
 			filteredData = currentData;
 			return;
 		}
 
 		const data = getNestedValue(currentData, focusedPath);
-
 		if (data === undefined) {
 			focusedPath = [];
 			filteredData = currentData;
@@ -184,18 +174,17 @@
 		}
 
 		filteredData = data;
-	};
+	}
 
-	const focusOnPath = (path: JSONPath): void => {
+	function focusOnPath(path: JSONPath): void {
 		focusedPath = path;
 		updateFilteredData();
-	};
+	}
 
-	const handleFormatted = (formattedText: string, newIndentSize: number): void => {
+	function handleFormatted(formattedText: string, newIndentSize: number): void {
 		try {
 			const parsed = JSON.parse(formattedText);
 			indentSize = newIndentSize;
-
 			if (focusedPath.length === 0) {
 				addToUndoStack();
 				currentData = parsed;
@@ -212,11 +201,10 @@
 		} catch (e) {
 			alert('Failed to apply format');
 		}
-	};
+	}
 
-	const handleSorted = (sortedData: JSONValue): void => {
+	function handleSorted(sortedData: JSONValue): void {
 		addToUndoStack();
-
 		if (focusedPath.length === 0) {
 			currentData = safeClone(sortedData);
 		} else {
@@ -228,13 +216,13 @@
 		isModified = true;
 		updateFilteredData();
 		buildSearchIndex();
-	};
+	}
 
-	const handleNavigateBack = (): void => {
+	function handleNavigateBack(): void {
 		if (focusedPath.length > 0) {
 			focusOnPath(focusedPath.slice(0, -1));
 		}
-	};
+	}
 
 	onMount(() => {
 		if (!browser) return;
