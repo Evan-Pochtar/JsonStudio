@@ -6,7 +6,7 @@
 	<div class="w-full max-w-3xl py-24 text-center">
 		<div class="inline-flex items-baseline gap-6">
 			<h2
-				class="bg-gradient-to-br from-blue-600 to-blue-700 bg-clip-text text-[7rem] font-extrabold tracking-tight text-transparent sm:text-[9rem]"
+				class="bg-gradient-to-br from-red-600 to-red-700 bg-clip-text text-[7rem] font-extrabold tracking-tight text-transparent sm:text-[9rem]"
 			>
 				404
 			</h2>
@@ -19,7 +19,7 @@
 
 				<a
 					href="/"
-					class="inline-flex items-center rounded-lg border border-transparent bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-md focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:outline-none"
+					class="inline-flex items-center rounded-lg border border-transparent bg-gradient-to-r from-red-600 to-red-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:from-red-700 hover:to-red-800 hover:shadow-md focus:ring-2 focus:ring-red-500/20 focus:ring-offset-2 focus:outline-none"
 				>
 					<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path

@@ -55,7 +55,7 @@
 		<div class="mb-6 space-y-4">
 			{#each formatOptions as option}
 				<label class="flex cursor-pointer items-start space-x-3 rounded-lg border p-3 hover:bg-gray-50">
-					<input type="radio" bind:group={selectedFormat} value={option.value} class="mt-1 h-4 w-4 text-blue-600" />
+					<input type="radio" bind:group={selectedFormat} value={option.value} class="mt-1 h-4 w-4 text-red-600" />
 					<div class="flex-1">
 						<div class="text-sm font-medium text-gray-900">{option.label}</div>
 						<div class="text-xs text-gray-500">{option.description}</div>
@@ -82,7 +82,7 @@
 			<button onclick={onClose} class={TAILWIND_CLASSES.buttons.secondary} type="button"> Cancel </button>
 			<button
 				onclick={applyFormat}
-				class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-blue-700 hover:shadow-md focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:outline-none"
+				class={TAILWIND_CLASSES.buttons.success}
 				type="button"
 			>
 				Apply Format

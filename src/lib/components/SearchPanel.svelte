@@ -52,11 +52,11 @@
 	<input
 		bind:value={searchQuery}
 		placeholder="Search anywhere..."
-		class="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+		class="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none"
 	/>
 
 	<button
-		class="mt-2.5 flex items-center space-x-1.5 text-xs text-blue-600 transition-colors hover:text-blue-800"
+		class="mt-2.5 flex items-center space-x-1.5 text-xs text-red-600 transition-colors hover:text-red-800"
 		onclick={() => (showAdvanced = !showAdvanced)}
 		type="button"
 	>
@@ -76,7 +76,7 @@
 			<input
 				bind:value={keyFilter}
 				placeholder="Search in specific key..."
-				class="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+				class="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none"
 			/>
 			<p class="mt-1.5 text-xs text-gray-500">Leave empty to search everywhere</p>
 		</div>
@@ -90,11 +90,11 @@
 			<div class="max-h-full space-y-2 overflow-y-auto">
 				{#each searchResults as result}
 					<button
-						class="group w-full rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3 text-left text-xs shadow-sm transition-all duration-200 hover:border-blue-300 hover:shadow-md"
+						class="group w-full rounded-lg border border-gray-200 bg-gradient-to-br from-white to-gray-50 p-3 text-left text-xs shadow-sm transition-all duration-200 hover:border-red-300 hover:shadow-md"
 						onclick={() => navigateToResult(result)}
 						type="button"
 					>
-						<div class="font-medium text-gray-900 group-hover:text-blue-700">
+						<div class="font-medium text-gray-900 group-hover:text-red-700">
 							{result.key}
 						</div>
 						<div class="mt-1 truncate text-gray-600">{result.value}</div>

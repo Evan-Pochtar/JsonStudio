@@ -289,7 +289,7 @@
 				{#each ['tree', 'table', 'text'] as mode}
 					<button
 						class="flex-1 rounded-md px-3 py-2 text-xs font-medium transition-all duration-200 {viewMode === mode
-							? 'bg-white text-blue-600 shadow-sm'
+							? 'bg-white text-red-600 shadow-sm'
 							: 'text-gray-600 hover:text-gray-900'}"
 						onclick={() => (viewMode = mode as typeof viewMode)}
 						type="button"
@@ -309,23 +309,23 @@
 
 		{#if focusedPath.length > 0}
 			<div
-				class="border-b border-l-4 border-gray-200/80 bg-white/95 p-3 shadow-md ring-1 ring-blue-50/60 backdrop-blur-sm"
+				class="border-b border-l-4 border-gray-200/80 border-l-red-500 bg-white/95 p-3 shadow-md ring-1 ring-red-50/60 backdrop-blur-sm"
 			>
 				<div class="mb-2">
 					<div class="flex items-baseline justify-between">
-						<div class="text-sm font-semibold text-blue-700">Navigation</div>
+						<div class="text-sm font-semibold text-red-700">Navigation</div>
 						<div class="text-xs text-gray-500">{focusedPath.join('.')}</div>
 					</div>
 				</div>
 
 				<div class="space-y-2">
 					<button
-						class="group flex w-full items-center space-x-3 rounded-md bg-blue-50/30 px-3 py-2 text-left text-sm font-medium shadow-sm transition duration-150 hover:bg-blue-100 hover:shadow focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+						class="group flex w-full items-center space-x-3 rounded-md bg-red-50/30 px-3 py-2 text-left text-sm font-medium shadow-sm transition duration-150 hover:bg-red-100 hover:shadow focus:ring-2 focus:ring-red-500/20 focus:outline-none"
 						onclick={() => focusOnPath([])}
 						type="button"
 					>
 						<svg
-							class="h-4 w-4 text-blue-600 transition-transform group-hover:-translate-x-0.5"
+							class="h-4 w-4 text-red-600 transition-transform group-hover:-translate-x-0.5"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -337,12 +337,12 @@
 
 					{#if focusedPath.length > 1}
 						<button
-							class="group flex w-full items-center space-x-3 rounded-md bg-blue-50/30 px-3 py-2 text-left text-sm font-medium shadow-sm transition duration-150 hover:bg-blue-100 hover:shadow focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+							class="group flex w-full items-center space-x-3 rounded-md bg-red-50/30 px-3 py-2 text-left text-sm font-medium shadow-sm transition duration-150 hover:bg-red-100 hover:shadow focus:ring-2 focus:ring-red-500/20 focus:outline-none"
 							onclick={() => focusOnPath(focusedPath.slice(0, -1))}
 							type="button"
 						>
 							<svg
-								class="h-4 w-4 text-blue-600 transition-transform group-hover:-translate-x-0.5"
+								class="h-4 w-4 text-red-600 transition-transform group-hover:-translate-x-0.5"
 								fill="none"
 								stroke="currentColor"
 								viewBox="0 0 24 24"

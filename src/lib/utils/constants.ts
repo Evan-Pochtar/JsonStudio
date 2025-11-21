@@ -22,13 +22,13 @@ export const TAILWIND_CLASSES = {
 		danger:
 			'rounded-lg bg-gradient-to-r from-red-600 to-red-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-red-700 hover:to-red-800 hover:shadow-md focus:ring-2 focus:ring-red-500/20 focus:ring-offset-2 focus:outline-none',
 		success:
-			'rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-md focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 focus:outline-none',
+			'rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-red-700 hover:shadow-md focus:ring-2 focus:ring-red-500/20 focus:ring-offset-2 focus:outline-none',
 		small: 'rounded-md px-2 py-1 text-xs font-medium transition-all duration-200'
 	},
 	inputs: {
-		text: 'w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none',
+		text: 'w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-red-500 focus:ring-1 focus:ring-red-500 focus:outline-none',
 		textarea:
-			'w-full resize-none overflow-auto rounded-md border border-blue-500 bg-white px-2 py-1 transition-all duration-200 focus:ring-2 focus:ring-blue-500/20 focus:outline-none'
+			'w-full resize-none overflow-auto rounded-md border border-red-500 bg-white px-2 py-1 transition-all duration-200 focus:ring-2 focus:ring-red-500/20 focus:outline-none'
 	},
 	modals: {
 		overlay: 'fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm',

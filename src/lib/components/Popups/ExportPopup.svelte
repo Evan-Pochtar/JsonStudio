@@ -158,15 +158,15 @@
 
 		<div class="mb-6 space-y-3">
 			<label class="flex items-center space-x-3">
-				<input type="radio" bind:group={exportFormat} value="json" class="h-4 w-4 text-blue-600" />
+				<input type="radio" bind:group={exportFormat} value="json" class="h-4 w-4 text-red-600" />
 				<span class="text-sm text-gray-700">JSON (.json)</span>
 			</label>
 			<label class="flex items-center space-x-3">
-				<input type="radio" bind:group={exportFormat} value="csv" class="h-4 w-4 text-blue-600" />
+				<input type="radio" bind:group={exportFormat} value="csv" class="h-4 w-4 text-red-600" />
 				<span class="text-sm text-gray-700">CSV (.csv)</span>
 			</label>
 			<label class="flex items-center space-x-3">
-				<input type="radio" bind:group={exportFormat} value="xlsx" class="h-4 w-4 text-blue-600" />
+				<input type="radio" bind:group={exportFormat} value="xlsx" class="h-4 w-4 text-red-600" />
 				<span class="text-sm text-gray-700">Excel (.xlsx)</span>
 			</label>
 		</div>

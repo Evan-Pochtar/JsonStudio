@@ -103,9 +103,9 @@
 			</div>
 
 			{#if hasSiblings}
-				<div class="rounded-lg border border-blue-200 bg-blue-50 p-3">
+				<div class="rounded-lg border border-red-200 bg-red-50 p-3">
 					<label class="flex items-start space-x-3">
-						<input type="checkbox" bind:checked={applyToSiblings} class="mt-0.5 h-4 w-4 text-blue-600" />
+						<input type="checkbox" bind:checked={applyToSiblings} class="mt-0.5 h-4 w-4 text-red-600" />
 						<div>
 							<span class="text-sm font-medium text-gray-900">Apply to all siblings</span>
 							<p class="text-xs text-gray-600">Add this key to all items in the parent array</p>
