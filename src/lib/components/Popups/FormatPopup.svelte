@@ -80,13 +80,7 @@
 
 		<div class="flex justify-end space-x-3">
 			<button onclick={onClose} class={TAILWIND_CLASSES.buttons.secondary} type="button"> Cancel </button>
-			<button
-				onclick={applyFormat}
-				class={TAILWIND_CLASSES.buttons.success}
-				type="button"
-			>
-				Apply Format
-			</button>
+			<button onclick={applyFormat} class={TAILWIND_CLASSES.buttons.success} type="button"> Apply Format </button>
 		</div>
 	</div>
 </div>

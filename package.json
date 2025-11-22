@@ -12,8 +12,14 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
+		"test": "vitest",
+		"test:unit": "vitest run",
+		"test:coverage": "vitest run --coverage",
 		"test:e2e": "playwright test",
-		"test": "npm run test:e2e"
+		"test:e2e:headed": "playwright test --headed",
+		"test:e2e:debug": "playwright test --debug",
+		"test:e2e:ui": "playwright test --ui",
+		"test:all": "npm run test:unit && npm run test:e2e"
 	},
 	"devDependencies": {
 		"@eslint/compat": "latest",
@@ -24,11 +30,15 @@
 		"@sveltejs/kit": "latest",
 		"@sveltejs/vite-plugin-svelte": "latest",
 		"@tailwindcss/vite": "latest",
+		"@testing-library/jest-dom": "latest",
+		"@testing-library/svelte": "latest",
 		"@types/node": "latest",
+		"@vitest/coverage-v8": "latest",
 		"eslint": "latest",
 		"eslint-config-prettier": "latest",
 		"eslint-plugin-svelte": "latest",
 		"globals": "latest",
+		"jsdom": "latest",
 		"prettier": "latest",
 		"prettier-plugin-svelte": "latest",
 		"prettier-plugin-tailwindcss": "latest",
@@ -37,9 +47,10 @@
 		"tailwindcss": "latest",
 		"typescript": "latest",
 		"typescript-eslint": "latest",
-		"vite": "latest"
+		"vite": "latest",
+		"vitest": "latest"
 	},
 	"dependencies": {
-		"xlsx": "latest"
+		"xlsx": "https://cdn.sheetjs.com/xlsx-latest/xlsx-latest.tgz"
 	}
 }
