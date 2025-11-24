@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { JSONValue } from '$lib/types';
 	import { flattenObjectKeys, getNestedValue } from '$lib/utils/helpers';
 	import { TAILWIND_CLASSES } from '$lib/utils/constants';
@@ -78,21 +79,23 @@
 		onSort(sortedData);
 		onClose();
 	}
+
+	onMount(() => {
+		function handleKeyDown(e: KeyboardEvent): void {
+			if (e.key === 'Escape') {
+				onClose();
+			}
+		}
+
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	});
 </script>
 
-<div
-	class={TAILWIND_CLASSES.modals.overlay}
-	role="dialog"
-	onclick={onClose}
-	onkeydown={(e) => e.key === 'Escape' && onClose()}
-	tabindex="-1"
->
-	<div
-		class={TAILWIND_CLASSES.modals.container}
-		role="presentation"
-		onclick={(e) => e.stopPropagation()}
-		onkeydown={() => {}}
-	>
+<!-- svelte-ignore a11y_interactive_supports_focus -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div class={TAILWIND_CLASSES.modals.overlay} role="dialog" onclick={onClose}>
+	<div class={TAILWIND_CLASSES.modals.container} role="presentation" onclick={(e) => e.stopPropagation()}>
 		<h2 class="mb-4 text-lg font-semibold text-gray-900">Sort Data</h2>
 
 		{#if availableKeys.length > 0}
