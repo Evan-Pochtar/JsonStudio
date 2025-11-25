@@ -15,6 +15,11 @@ export function pathToKey(path: JSONPath): string {
 
 export function getNestedValue(obj: any, path: string | JSONPath): any {
 	const keys = Array.isArray(path) ? path : path.split('.');
+
+	if (keys.length === 0 || (keys.length === 1 && keys[0] === '')) {
+		return obj;
+	}
+
 	let current = obj;
 
 	for (const key of keys) {
@@ -51,6 +56,9 @@ export function deleteNestedValue(obj: any, path: JSONPath): void {
 	let current = obj;
 	for (let i = 0; i < path.length - 1; i++) {
 		current = current[path[i]];
+		if (!current || typeof current !== 'object') {
+			return;
+		}
 	}
 
 	const lastKey = path[path.length - 1];
@@ -158,6 +166,9 @@ export function sortByKey<T extends Record<string, any>>(items: T[], key: string
 			return direction === 'asc' ? aIndex - bIndex : bIndex - aIndex;
 		}
 
+		if (aVal === '' && bVal !== '') return 1;
+		if (aVal !== '' && bVal === '') return -1;
+
 		const compare = aStr.localeCompare(bStr);
 		return direction === 'asc' ? compare : -compare;
 	});
@@ -173,14 +184,18 @@ export function debounce<T extends (...args: any[]) => any>(fn: T, delay: number
 }
 
 export function escapeRegex(str: string): string {
-	return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	return str.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
 }
 
 export function getFileExtension(filename: string): string {
-	return filename.slice(filename.lastIndexOf('.')).toLowerCase();
+	const lastDotIndex = filename.lastIndexOf('.');
+	if (lastDotIndex <= 0) return '';
+	return filename.slice(lastDotIndex).toLowerCase();
 }
 
 export function removeFileExtension(filename: string): string {
 	const lastDotIndex = filename.lastIndexOf('.');
-	return lastDotIndex > 0 ? filename.slice(0, lastDotIndex) : filename;
+	if (lastDotIndex === -1) return filename;
+	if (lastDotIndex === 0) return '';
+	return filename.slice(0, lastDotIndex);
 }
