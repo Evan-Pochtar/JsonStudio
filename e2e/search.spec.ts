@@ -23,9 +23,14 @@ test.describe('Search Functionality', () => {
 		const searchInput = page.locator('input[placeholder="Search anywhere..."]');
 		await searchInput.fill('email');
 
-		// Should find email keys
 		await expect(page.locator('text=result')).toBeVisible();
-		await expect(page.locator('button:has-text("email")')).toBeVisible();
+
+		const emailButtons = page.locator('button:has-text("email")');
+		await expect(emailButtons).toHaveCount(3);
+
+		await expect(emailButtons.nth(0)).toBeVisible();
+		await expect(emailButtons.nth(1)).toBeVisible();
+		await expect(emailButtons.nth(2)).toBeVisible();
 	});
 
 	test('should search case-insensitively', async ({ page }) => {
@@ -62,7 +67,7 @@ test.describe('Search Functionality', () => {
 		await page.click('button:has-text("David Smith")');
 
 		// Should navigate to that location
-		await expect(page.locator('text=users')).toBeVisible();
+		await expect(page.locator('div').filter({ hasText: /^users\.0$/ })).toBeVisible();
 		await expect(page.locator('text=Back to root')).toBeVisible();
 	});
 
