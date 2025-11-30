@@ -75,7 +75,7 @@
 		if (e.key === 'Tab') {
 			e.preventDefault();
 			textContent = textContent.substring(0, start) + '  ' + textContent.substring(end);
-			handleInput();
+			updateLineNumbers();
 			requestAnimationFrame(() => {
 				if (textarea) {
 					textarea.selectionStart = textarea.selectionEnd = start + 2;
@@ -91,7 +91,7 @@
 			const currentLine = beforeCursor.split('\n').pop() || '';
 			const leadingSpaces = currentLine.match(/^\s*/)?.[0] || '';
 			textContent = beforeCursor + '\n' + leadingSpaces + afterCursor;
-			handleInput();
+			updateLineNumbers();
 			requestAnimationFrame(() => {
 				if (textarea) {
 					const newPos = start + 1 + leadingSpaces.length;
@@ -109,7 +109,7 @@
 		if (e.key in closers) {
 			e.preventDefault();
 			textContent = textContent.substring(0, start) + e.key + closers[e.key] + textContent.substring(end);
-			handleInput();
+			updateLineNumbers();
 			requestAnimationFrame(() => {
 				if (textarea) {
 					textarea.selectionStart = textarea.selectionEnd = start + 1;
@@ -120,6 +120,10 @@
 
 	onMount(() => {
 		updateTextContent();
+		if (textarea) {
+			setTimeout(() => textarea?.focus(), 0);
+		}
+
 		if (browser) {
 			function handleFormat(): void {
 				try {
@@ -175,7 +179,7 @@
 			spellcheck="false"
 		></textarea>
 
-		{#if errorLine}
+		{#if errorLine && errorMessage}
 			<div
 				class="animate-in slide-in-from-bottom-2 fade-in absolute right-4 bottom-4 left-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 shadow-lg duration-300"
 			>
