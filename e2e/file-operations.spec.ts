@@ -51,7 +51,7 @@ test.describe('File Operations', () => {
 
 		// Verify file is loaded
 		await expect(page.locator(`text=${fileName}`)).toBeVisible();
-		await expect(page.locator('text=test')).toBeVisible();
+		await expect(page.getByRole('button', { name: 'test' })).toBeVisible();
 	});
 
 	test('should reject invalid JSON files', async ({ page }) => {
@@ -95,8 +95,15 @@ test.describe('File Operations', () => {
 		await page.waitForSelector('text=users');
 
 		// Make a change in tree view
-		const firstKey = page.locator('span.text-blue-600').first();
-		await firstKey.dblclick();
+		await page.locator('span.text-blue-600:has-text("users []")').first().dblclick();
+		await page.locator('span.text-blue-600:has-text("0 {}")').first().dblclick();
+		await page.locator('span.text-gray-700:has-text("David Smith")').first().dblclick();
+
+		// Clear the whole field and type the new name
+		await page.keyboard.press('Control+A');
+		await page.keyboard.press('Backspace');
+		await page.keyboard.type('Daniel Johnson');
+		await page.keyboard.press('Control+s');
 
 		// Should show modified badge
 		await expect(page.locator('text=Modified')).toBeVisible({ timeout: 5000 });
@@ -130,7 +137,8 @@ test.describe('File Operations', () => {
 		});
 
 		await expect(page.locator('text=large.json')).toBeVisible();
-		await expect(page.locator('text=items')).toBeVisible();
+		await expect(page.getByRole('button', { name: 'items []' })).toBeVisible();
+		await expect(page.getByRole('button', { name: '100 items' })).toBeVisible();
 	});
 
 	test('should preserve data when switching views', async ({ page }) => {
