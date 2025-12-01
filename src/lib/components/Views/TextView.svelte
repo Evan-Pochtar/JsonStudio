@@ -18,8 +18,15 @@
 	let errorLine: number | null = $state(null);
 	let errorMessage = $state('');
 	let textarea: HTMLTextAreaElement | null = null;
+	let lineNumbersEl: HTMLDivElement | null = null;
 	let lastValidData: JSONValue = data;
 	let isInternalUpdate = false;
+
+	function handleScroll(): void {
+		if (lineNumbersEl && textarea) {
+			lineNumbersEl.scrollTop = textarea.scrollTop;
+		}
+	}
 
 	function updateTextContent(): void {
 		if (isInternalUpdate) {
@@ -75,7 +82,7 @@
 		if (e.key === 'Tab') {
 			e.preventDefault();
 			textContent = textContent.substring(0, start) + '  ' + textContent.substring(end);
-			updateLineNumbers();
+			handleInput();
 			requestAnimationFrame(() => {
 				if (textarea) {
 					textarea.selectionStart = textarea.selectionEnd = start + 2;
@@ -91,7 +98,7 @@
 			const currentLine = beforeCursor.split('\n').pop() || '';
 			const leadingSpaces = currentLine.match(/^\s*/)?.[0] || '';
 			textContent = beforeCursor + '\n' + leadingSpaces + afterCursor;
-			updateLineNumbers();
+			handleInput();
 			requestAnimationFrame(() => {
 				if (textarea) {
 					const newPos = start + 1 + leadingSpaces.length;
@@ -109,7 +116,7 @@
 		if (e.key in closers) {
 			e.preventDefault();
 			textContent = textContent.substring(0, start) + e.key + closers[e.key] + textContent.substring(end);
-			updateLineNumbers();
+			handleInput();
 			requestAnimationFrame(() => {
 				if (textarea) {
 					textarea.selectionStart = textarea.selectionEnd = start + 1;
@@ -120,10 +127,6 @@
 
 	onMount(() => {
 		updateTextContent();
-		if (textarea) {
-			setTimeout(() => textarea?.focus(), 0);
-		}
-
 		if (browser) {
 			function handleFormat(): void {
 				try {
@@ -159,47 +162,53 @@
 	});
 </script>
 
-<div class="flex h-full">
-	<div class="min-w-12 overflow-auto border-r bg-gray-50 px-3 py-4 font-mono text-xs text-gray-500 select-none">
-		{#each lineNumbers as lineNum}
-			<div class="leading-6" class:text-red-600={errorLine === lineNum} class:font-bold={errorLine === lineNum}>
-				{lineNum}
-			</div>
-		{/each}
-	</div>
+<div class="flex h-full overflow-hidden">
+	<div class="relative flex-1 flex overflow-hidden">
+		<div 
+			bind:this={lineNumbersEl}
+			class="min-w-12 border-r bg-gray-50 px-3 py-4 font-mono text-xs text-gray-500 select-none overflow-hidden"
+		>
+			{#each lineNumbers as lineNum}
+				<div class="leading-6" class:text-red-600={errorLine === lineNum} class:font-bold={errorLine === lineNum}>
+					{lineNum}
+				</div>
+			{/each}
+		</div>
 
-	<div class="relative flex-1">
-		<textarea
-			bind:this={textarea}
-			bind:value={textContent}
-			oninput={handleInput}
-			onkeydown={handleKeyDown}
-			class="h-full w-full resize-none border-0 bg-white p-4 font-mono text-sm leading-6 focus:outline-none"
-			placeholder="Enter JSON here..."
-			spellcheck="false"
-		></textarea>
+		<div class="relative flex-1 overflow-hidden">
+			<textarea
+				bind:this={textarea}
+				bind:value={textContent}
+				oninput={handleInput}
+				onkeydown={handleKeyDown}
+				onscroll={handleScroll}
+				class="h-full w-full resize-none border-0 bg-white p-4 font-mono text-sm leading-6 focus:outline-none overflow-auto"
+				placeholder="Enter JSON here..."
+				spellcheck="false"
+			></textarea>
 
-		{#if errorLine && errorMessage}
-			<div
-				class="animate-in slide-in-from-bottom-2 fade-in absolute right-4 bottom-4 left-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 shadow-lg duration-300"
-			>
-				<div class="flex items-start space-x-2">
-					<svg class="mt-0.5 h-5 w-5 shrink-0 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-						/>
-					</svg>
-					<div class="flex-1">
-						<div class="text-sm font-medium text-red-800">
-							JSON syntax error on line {errorLine}
+			{#if errorLine}
+				<div
+					class="animate-in slide-in-from-bottom-2 fade-in absolute right-4 bottom-4 left-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 shadow-lg duration-300"
+				>
+					<div class="flex items-start space-x-2">
+						<svg class="mt-0.5 h-5 w-5 shrink-0 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+							/>
+						</svg>
+						<div class="flex-1">
+							<div class="text-sm font-medium text-red-800">
+								JSON syntax error on line {errorLine}
+							</div>
+							<div class="mt-1 text-xs text-red-700">{errorMessage}</div>
 						</div>
-						<div class="mt-1 text-xs text-red-700">{errorMessage}</div>
 					</div>
 				</div>
-			</div>
-		{/if}
+			{/if}
+		</div>
 	</div>
 </div>

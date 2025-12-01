@@ -235,8 +235,21 @@ test.describe('JSON Editing', () => {
 		});
 
 		test('should show line numbers', async ({ page }) => {
-			await expect(page.locator('text=1')).toBeVisible();
-			await expect(page.locator('text=2')).toBeVisible();
+			await expect(page.getByText('1', { exact: true })).toBeVisible();
+			await expect(page.getByText('16', { exact: true })).toBeVisible();
+			await expect(page.getByText('35', { exact: true })).toBeVisible();
+
+			await page.click('button:has-text("Tree")');
+			await page.waitForSelector('text=users');
+
+			await page.locator('span.text-blue-600:has-text("users")').first().dblclick();
+
+			await page.click('button:has-text("Text")');
+			await page.waitForSelector('textarea');
+
+			await expect(page.getByText('1', { exact: true })).toBeVisible();
+			await expect(page.getByText('23', { exact: true })).toBeVisible();
+			await expect(page.getByText('35', { exact: true })).not.toBeVisible();
 		});
 
 		test('should edit JSON text', async ({ page }) => {
