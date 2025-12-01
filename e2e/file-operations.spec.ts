@@ -90,25 +90,6 @@ test.describe('File Operations', () => {
 		});
 	});
 
-	test('should show modified status when data changes', async ({ page }) => {
-		// Wait for initial load
-		await page.waitForSelector('text=users');
-
-		// Make a change in tree view
-		await page.locator('span.text-blue-600:has-text("users []")').first().dblclick();
-		await page.locator('span.text-blue-600:has-text("0 {}")').first().dblclick();
-		await page.locator('span.text-gray-700:has-text("David Smith")').first().dblclick();
-
-		// Clear the whole field and type the new name
-		await page.keyboard.press('Control+A');
-		await page.keyboard.press('Backspace');
-		await page.keyboard.type('Daniel Johnson');
-		await page.keyboard.press('Control+s');
-
-		// Should show modified badge
-		await expect(page.locator('text=Modified')).toBeVisible({ timeout: 5000 });
-	});
-
 	test('should display file name correctly', async ({ page }) => {
 		await expect(page.locator('text=sample.json')).toBeVisible();
 	});

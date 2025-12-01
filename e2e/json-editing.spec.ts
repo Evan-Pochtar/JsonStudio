@@ -9,8 +9,9 @@ test.describe('JSON Editing', () => {
 	test.describe('Tree View Editing', () => {
 		test('should edit a value by double-clicking', async ({ page }) => {
 			// Find and double-click a value
-			const valueSpan = page.locator('span.text-gray-700').first();
-			await valueSpan.dblclick();
+			await page.locator('span.text-blue-600:has-text("users []")').first().dblclick();
+			await page.locator('span.text-blue-600:has-text("0 {}")').first().dblclick();
+			await page.locator('span.text-gray-700:has-text("David Smith")').first().dblclick();
 
 			// Should show textarea
 			const textarea = page.locator('textarea');
@@ -25,20 +26,22 @@ test.describe('JSON Editing', () => {
 		});
 
 		test('should expand and collapse nodes', async ({ page }) => {
-			// Find the users node
-			const usersButton = page.locator('button[aria-expanded]').filter({ hasText: /users/ }).first();
+			// locate the row that contains the label "users"
+			const usersRow = page.locator('div', { has: page.locator('text=users') }).first();
 
 			// Expand
-			await usersButton.click();
+			const expandButton = usersRow.locator('button[title="Expand node"]').first();
+			await expandButton.click();
 
-			// Should show array items
-			await expect(page.locator('text=[0]')).toBeVisible();
+			// Verify Expanded Items Shown
+			await expect(page.locator('text=0 {}')).toBeVisible();
 
 			// Collapse
-			await usersButton.click();
+			const collapseButton = usersRow.locator('button[title="Collapse node"]');
+			await collapseButton.click();
 
-			// Array items should be hidden
-			await expect(page.locator('text=[0]')).not.toBeVisible();
+			// Verify Items Hidden
+			await expect(page.locator('text=0 {}')).not.toBeVisible();
 		});
 
 		test('should navigate into objects', async ({ page }) => {
@@ -47,7 +50,7 @@ test.describe('JSON Editing', () => {
 			await usersKey.dblclick();
 
 			// Should focus on users array
-			await expect(page.locator('text=users')).toBeVisible();
+			await expect(page.getByRole('button', { name: 'users[]' })).toBeVisible();
 			await expect(page.locator('text=Back to root')).toBeVisible();
 		});
 
@@ -88,29 +91,35 @@ test.describe('JSON Editing', () => {
 			// Fill in popup
 			await page.fill('input#keyname', 'newSetting');
 			await page.fill('input#defaultval', 'true');
-			await page.click('button:has-text("Add Key")');
+			await page.click('button.bg-red-600:has-text("Add Key")');
 
 			// Verify key was added
 			await expect(page.locator('text=Modified')).toBeVisible();
 		});
 
 		test('should save edits with Ctrl+S', async ({ page }) => {
-			const valueSpan = page.locator('span.text-gray-700').first();
-			await valueSpan.dblclick();
+			// Wait for initial load
+			await page.waitForSelector('text=users');
 
-			const textarea = page.locator('textarea');
-			await textarea.fill('"Updated"');
+			// Make a change in tree view
+			await page.locator('span.text-blue-600:has-text("users []")').first().dblclick();
+			await page.locator('span.text-blue-600:has-text("0 {}")').first().dblclick();
+			await page.locator('span.text-gray-700:has-text("David Smith")').first().dblclick();
 
-			// Press Ctrl+S
-			await textarea.press('Control+s');
+			// Clear the whole field and type the new name
+			await page.keyboard.press('Control+A');
+			await page.keyboard.press('Backspace');
+			await page.keyboard.type('Daniel Johnson');
+			await page.keyboard.press('Control+s');
 
-			// Textarea should be gone
-			await expect(textarea).not.toBeVisible();
+			// Should show modified badge
+			await expect(page.locator('text=Modified')).toBeVisible({ timeout: 5000 });
 		});
 
 		test('should cancel edits with Escape', async ({ page }) => {
-			const valueSpan = page.locator('span.text-gray-700').first();
-			await valueSpan.dblclick();
+			await page.locator('span.text-blue-600:has-text("users []")').first().dblclick();
+			await page.locator('span.text-blue-600:has-text("0 {}")').first().dblclick();
+			await page.locator('span.text-gray-700:has-text("David Smith")').first().dblclick();
 
 			const textarea = page.locator('textarea');
 			await textarea.fill('"Different Value"');
@@ -137,8 +146,8 @@ test.describe('JSON Editing', () => {
 
 		test('should edit cell value', async ({ page }) => {
 			// Click on a cell
-			const cell = page.locator('td button').first();
-			await cell.click();
+			await page.locator('td button:has-text("[3 items]")').first().dblclick();
+			await page.locator('td button:has-text("David Smith")').first().dblclick();
 
 			// Should show textarea
 			const textarea = page.locator('textarea').first();
