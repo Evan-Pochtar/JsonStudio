@@ -19,26 +19,18 @@
 	let errorMessage = $state('');
 	let textarea: HTMLTextAreaElement | null = null;
 	let lineNumbersEl: HTMLDivElement | null = null;
-	let lastValidData: JSONValue = data;
-	let isInternalUpdate = false;
+	
+	let lastStringified = '';
 
-	function handleScroll(): void {
-		if (lineNumbersEl && textarea) {
-			lineNumbersEl.scrollTop = textarea.scrollTop;
-		}
-	}
-
-	function updateTextContent(): void {
-		if (isInternalUpdate) {
-			isInternalUpdate = false;
-			return;
-		}
+	function syncFromData(): void {
 		try {
-			textContent = JSON.stringify(data, null, indentSize);
-			errorLine = null;
-			errorMessage = '';
-			lastValidData = data;
-			updateLineNumbers();
+			const stringified = JSON.stringify(data, null, indentSize);
+			if (stringified !== lastStringified) {
+				textContent = stringified;
+				lastStringified = stringified;
+				updateLineNumbers();
+				clearError();
+			}
 		} catch (e) {
 			errorMessage = `Failed to stringify JSON: ${e}`;
 		}
@@ -48,26 +40,36 @@
 		lineNumbers = textContent.split('\n').map((_, i) => i + 1);
 	}
 
+	function clearError(): void {
+		errorLine = null;
+		errorMessage = '';
+	}
+
+	function handleScroll(): void {
+		if (lineNumbersEl && textarea) {
+			lineNumbersEl.scrollTop = textarea.scrollTop;
+		}
+	}
+
 	function handleInput(): void {
 		updateLineNumbers();
-		isInternalUpdate = true;
+		
 		try {
 			const parsed = JSON.parse(textContent);
+			lastStringified = JSON.stringify(parsed, null, indentSize);
 			update(parsed);
-			lastValidData = parsed;
-			errorLine = null;
-			errorMessage = '';
+			clearError();
 		} catch (e: any) {
 			const msg = e?.message ?? String(e);
 			errorMessage = msg;
+			
 			const match = msg.match(/line[:\s]+(\d+)/i) || msg.match(/position\s+(\d+)/i);
 			if (match) {
-				const maybePos = parseInt(match[1], 10);
+				const pos = parseInt(match[1], 10);
 				if (msg.toLowerCase().includes('position')) {
-					const upToPos = textContent.slice(0, maybePos);
-					errorLine = upToPos.split('\n').length;
+					errorLine = textContent.slice(0, pos).split('\n').length;
 				} else {
-					errorLine = maybePos;
+					errorLine = pos;
 				}
 			} else {
 				errorLine = null;
@@ -77,15 +79,19 @@
 
 	function handleKeyDown(e: KeyboardEvent): void {
 		if (!textarea) return;
+		
 		const start = textarea.selectionStart ?? 0;
 		const end = textarea.selectionEnd ?? 0;
+
 		if (e.key === 'Tab') {
 			e.preventDefault();
-			textContent = textContent.substring(0, start) + '  ' + textContent.substring(end);
+			const indent = '  ';
+			textContent = textContent.substring(0, start) + indent + textContent.substring(end);
 			handleInput();
+			
 			requestAnimationFrame(() => {
 				if (textarea) {
-					textarea.selectionStart = textarea.selectionEnd = start + 2;
+					textarea.selectionStart = textarea.selectionEnd = start + indent.length;
 				}
 			});
 			return;
@@ -97,12 +103,13 @@
 			const afterCursor = textContent.substring(end);
 			const currentLine = beforeCursor.split('\n').pop() || '';
 			const leadingSpaces = currentLine.match(/^\s*/)?.[0] || '';
+			
 			textContent = beforeCursor + '\n' + leadingSpaces + afterCursor;
 			handleInput();
+			
 			requestAnimationFrame(() => {
 				if (textarea) {
-					const newPos = start + 1 + leadingSpaces.length;
-					textarea.selectionStart = textarea.selectionEnd = newPos;
+					textarea.selectionStart = textarea.selectionEnd = start + 1 + leadingSpaces.length;
 				}
 			});
 			return;
@@ -113,10 +120,12 @@
 			'[': ']',
 			'"': '"'
 		};
+		
 		if (e.key in closers) {
 			e.preventDefault();
 			textContent = textContent.substring(0, start) + e.key + closers[e.key] + textContent.substring(end);
 			handleInput();
+			
 			requestAnimationFrame(() => {
 				if (textarea) {
 					textarea.selectionStart = textarea.selectionEnd = start + 1;
@@ -126,39 +135,35 @@
 	}
 
 	onMount(() => {
-		updateTextContent();
+		syncFromData();
+
 		if (browser) {
 			function handleFormat(): void {
 				try {
 					const parsed = JSON.parse(textContent);
 					textContent = JSON.stringify(parsed, null, indentSize);
+					lastStringified = textContent;
 					updateLineNumbers();
 					update(parsed);
-					errorLine = null;
-					errorMessage = '';
+					clearError();
+					
 					setTimeout(() => {
-						isInternalUpdate = false;
 						if (textarea) textarea.focus();
 					}, 0);
 				} catch (e: any) {
 					errorMessage = e?.message ?? String(e);
 				}
 			}
+
 			window.addEventListener('editor:format', handleFormat as EventListener);
 			return () => window.removeEventListener('editor:format', handleFormat as EventListener);
 		}
 	});
 
 	$effect(() => {
-		if (data !== lastValidData) {
-			updateTextContent();
-		}
-	});
-
-	$effect(() => {
-		if (indentSize) {
-			updateTextContent();
-		}
+		data;
+		indentSize;
+		syncFromData();
 	});
 </script>
 
@@ -169,7 +174,11 @@
 			class="min-w-12 border-r bg-gray-50 px-3 py-4 font-mono text-xs text-gray-500 select-none overflow-hidden"
 		>
 			{#each lineNumbers as lineNum}
-				<div class="leading-6" class:text-red-600={errorLine === lineNum} class:font-bold={errorLine === lineNum}>
+				<div 
+					class="leading-6" 
+					class:text-red-600={errorLine === lineNum} 
+					class:font-bold={errorLine === lineNum}
+				>
 					{lineNum}
 				</div>
 			{/each}
@@ -188,9 +197,7 @@
 			></textarea>
 
 			{#if errorLine}
-				<div
-					class="animate-in slide-in-from-bottom-2 fade-in absolute right-4 bottom-4 left-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 shadow-lg duration-300"
-				>
+				<div class="animate-in slide-in-from-bottom-2 fade-in absolute right-4 bottom-4 left-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 shadow-lg duration-300">
 					<div class="flex items-start space-x-2">
 						<svg class="mt-0.5 h-5 w-5 shrink-0 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
