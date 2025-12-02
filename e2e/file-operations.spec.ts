@@ -94,10 +94,6 @@ test.describe('File Operations', () => {
 		await expect(page.locator('text=sample.json')).toBeVisible();
 	});
 
-	test('should show validation status', async ({ page }) => {
-		await expect(page.locator('text=Valid JSON')).toBeVisible();
-	});
-
 	test('should handle large JSON files', async ({ page }) => {
 		const largeData = {
 			items: Array.from({ length: 100 }, (_, i) => ({

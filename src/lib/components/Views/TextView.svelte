@@ -19,7 +19,7 @@
 	let errorMessage = $state('');
 	let textarea: HTMLTextAreaElement | null = null;
 	let lineNumbersEl: HTMLDivElement | null = null;
-	
+
 	let lastStringified = '';
 
 	function syncFromData(): void {
@@ -57,7 +57,7 @@
 		}
 
 		updateLineNumbers();
-		
+
 		try {
 			const parsed = JSON.parse(textContent);
 			lastStringified = JSON.stringify(parsed, null, indentSize);
@@ -66,7 +66,7 @@
 		} catch (err: any) {
 			const msg = err?.message ?? String(err);
 			errorMessage = msg;
-			
+
 			const lineMatch = msg.match(/line[:\s]+(\d+)/i);
 			const posMatch = msg.match(/position\s+(\d+)/i);
 			const match = lineMatch || posMatch;
@@ -89,7 +89,7 @@
 
 	function handleKeyDown(e: KeyboardEvent): void {
 		if (!textarea) return;
-		
+
 		const start = textarea.selectionStart ?? 0;
 		const end = textarea.selectionEnd ?? 0;
 
@@ -98,7 +98,7 @@
 			const indent = '  ';
 			textContent = textContent.substring(0, start) + indent + textContent.substring(end);
 			handleInput();
-			
+
 			requestAnimationFrame(() => {
 				if (textarea) {
 					textarea.selectionStart = textarea.selectionEnd = start + indent.length;
@@ -113,10 +113,10 @@
 			const afterCursor = textContent.substring(end);
 			const currentLine = beforeCursor.split('\n').pop() || '';
 			const leadingSpaces = currentLine.match(/^\s*/)?.[0] || '';
-			
+
 			textContent = beforeCursor + '\n' + leadingSpaces + afterCursor;
 			handleInput();
-			
+
 			requestAnimationFrame(() => {
 				if (textarea) {
 					textarea.selectionStart = textarea.selectionEnd = start + 1 + leadingSpaces.length;
@@ -130,12 +130,12 @@
 			'[': ']',
 			'"': '"'
 		};
-		
+
 		if (e.key in closers) {
 			e.preventDefault();
 			textContent = textContent.substring(0, start) + e.key + closers[e.key] + textContent.substring(end);
 			handleInput();
-			
+
 			requestAnimationFrame(() => {
 				if (textarea) {
 					textarea.selectionStart = textarea.selectionEnd = start + 1;
@@ -156,7 +156,7 @@
 					updateLineNumbers();
 					update(parsed);
 					clearError();
-					
+
 					setTimeout(() => {
 						if (textarea) textarea.focus();
 					}, 0);
@@ -178,17 +178,13 @@
 </script>
 
 <div class="flex h-full overflow-hidden">
-	<div class="relative flex-1 flex overflow-hidden">
-		<div 
+	<div class="relative flex flex-1 overflow-hidden">
+		<div
 			bind:this={lineNumbersEl}
-			class="min-w-12 border-r bg-gray-50 px-3 py-4 font-mono text-xs text-gray-500 select-none overflow-hidden"
+			class="min-w-12 overflow-hidden border-r bg-gray-50 px-3 py-4 font-mono text-xs text-gray-500 select-none"
 		>
 			{#each lineNumbers as lineNum}
-				<div 
-					class="leading-6" 
-					class:text-red-600={errorLine === lineNum} 
-					class:font-bold={errorLine === lineNum}
-				>
+				<div class="leading-6" class:text-red-600={errorLine === lineNum} class:font-bold={errorLine === lineNum}>
 					{lineNum}
 				</div>
 			{/each}
@@ -201,13 +197,15 @@
 				oninput={handleInput}
 				onkeydown={handleKeyDown}
 				onscroll={handleScroll}
-				class="h-full w-full resize-none border-0 bg-white p-4 font-mono text-sm leading-6 focus:outline-none overflow-auto"
+				class="h-full w-full resize-none overflow-auto border-0 bg-white p-4 font-mono text-sm leading-6 focus:outline-none"
 				placeholder="Enter JSON here..."
 				spellcheck="false"
 			></textarea>
 
 			{#if errorLine}
-				<div class="animate-in slide-in-from-bottom-2 fade-in absolute right-4 bottom-4 left-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 shadow-lg duration-300">
+				<div
+					class="animate-in slide-in-from-bottom-2 fade-in absolute right-4 bottom-4 left-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 shadow-lg duration-300"
+				>
 					<div class="flex items-start space-x-2">
 						<svg class="mt-0.5 h-5 w-5 shrink-0 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
@@ -221,7 +219,7 @@
 							<div class="text-sm font-medium text-red-800">
 								JSON syntax error on line {errorLine}
 							</div>
-							<div class="mt-1 text-xs text-red-700">{errorMessage}</div>
+							<div class="mt-1 text-xs text-red-700">{errorMessage} Changes will not be saved until valid JSON is made.</div>
 						</div>
 					</div>
 				</div>

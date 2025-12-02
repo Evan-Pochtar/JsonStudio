@@ -270,12 +270,12 @@ test.describe('JSON Editing', () => {
 
 		test('should auto-indent on Enter', async ({ page }) => {
 			const textarea = page.locator('textarea');
-			
+
 			// Get initial content
 			await textarea.click();
 			await textarea.press('ArrowDown');
 			await textarea.press('End');
-			
+
 			// Press Enter
 			await page.keyboard.press('Enter');
 
@@ -285,13 +285,13 @@ test.describe('JSON Editing', () => {
 			let foundIndentedLine = false;
 			for (let i = 1; i < lines.length; i++) {
 				if (lines[i].match(/^\s+/) || lines[i] === '') {
-					if (lines[i-1].match(/^\s+/)) {
+					if (lines[i - 1].match(/^\s+/)) {
 						foundIndentedLine = true;
 						break;
 					}
 				}
 			}
-			
+
 			// Verify that a new line was indented
 			expect(foundIndentedLine).toBe(true);
 		});

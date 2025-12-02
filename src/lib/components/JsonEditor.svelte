@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import type { JSONValue, JSONPath, JSONObject, SearchMatch, UndoEntry } from '$lib/types';
-	import { safeClone, getNestedValue, setNestedValue, validateJson } from '$lib/utils/helpers';
+	import { safeClone, getNestedValue, setNestedValue } from '$lib/utils/helpers';
 	import { EDITOR_CONSTANTS, TAILWIND_CLASSES } from '$lib/utils/constants';
 	import TableView from './Views/TableView.svelte';
 	import TreeView from './Views/TreeView.svelte';
@@ -244,8 +244,6 @@
 			});
 		};
 	});
-
-	const validation = $derived(validateJson(currentData));
 </script>
 
 <div class="flex h-full">
@@ -405,38 +403,6 @@
 				</svg>
 				<span>Download / Export</span>
 			</button>
-
-			<div
-				class="mt-4 flex items-center justify-center space-x-2 rounded-lg bg-white px-3 py-2 shadow-sm ring-1 ring-inset {validation.valid
-					? 'ring-green-600/20'
-					: 'ring-red-600/20'}"
-			>
-				<svg
-					class="h-4 w-4 {validation.valid ? 'text-green-600' : 'text-red-600'}"
-					fill="none"
-					stroke="currentColor"
-					viewBox="0 0 24 24"
-				>
-					{#if validation.valid}
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-						/>
-					{:else}
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-						/>
-					{/if}
-				</svg>
-				<span class="text-xs font-medium {validation.valid ? 'text-green-700' : 'text-red-700'}">
-					{validation.valid ? 'Valid JSON' : validation.error}
-				</span>
-			</div>
 		</div>
 	</div>
 

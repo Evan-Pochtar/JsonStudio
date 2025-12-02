@@ -28,16 +28,6 @@ test.describe('Error Handling and Edge Cases', () => {
 			await expect(page.getByText('JSON syntax error on line 3')).toBeVisible();
 		});
 
-		test('should show validation status for invalid JSON', async ({ page }) => {
-			await page.click('button:has-text("Text")');
-			const textarea = page.locator('textarea');
-
-			await textarea.fill('{ invalid }');
-
-			// Should not show "Valid JSON"
-			await expect(page.locator('text=Valid JSON')).not.toBeVisible();
-		});
-
 		test('should recover from invalid JSON when fixed', async ({ page }) => {
 			await page.click('button:has-text("Text")');
 			const textarea = page.locator('textarea');
@@ -51,17 +41,6 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			// Error should disappear
 			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
-		});
-
-		test('should prevent operations on invalid JSON', async ({ page }) => {
-			await page.click('button:has-text("Text")');
-			const textarea = page.locator('textarea');
-
-			await textarea.fill('{ invalid }');
-
-			// Validation should show invalid
-			await expect(page.locator('text=Valid JSON')).not.toBeVisible();
 		});
 	});
 
@@ -71,7 +50,6 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			// Should show root with empty object
 			await expect(page.locator('text=Root level')).toBeVisible();
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
 		});
 
 		test('should handle empty array', async ({ page }) => {
@@ -80,7 +58,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill('[]');
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should display empty object in tree view', async ({ page }) => {
@@ -109,7 +87,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill('{"value": null}');
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 	});
 
@@ -133,7 +111,7 @@ test.describe('Error Handling and Edge Cases', () => {
 			});
 
 			await expect(page.locator('text=large.json')).toBeVisible();
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should handle deeply nested objects', async ({ page }) => {
@@ -180,7 +158,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill('{"emoji": "😀", "chinese": "你好", "arabic": "مرحبا"}');
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should handle escaped characters', async ({ page }) => {
@@ -189,7 +167,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill('{"escaped": "Line 1\\nLine 2\\tTabbed"}');
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should handle special keys in objects', async ({ page }) => {
@@ -198,7 +176,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill('{"key.with.dots": true, "key/with/slashes": true}');
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 	});
 
@@ -246,7 +224,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill('[1, "string", true, null, {"obj": "value"}, [1,2,3]]');
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should handle numeric keys', async ({ page }) => {
@@ -255,7 +233,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill('{"0": "zero", "1": "one", "2": "two"}');
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should handle boolean primitive', async ({ page }) => {
@@ -264,7 +242,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill('true');
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should handle null primitive', async ({ page }) => {
@@ -273,7 +251,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill('null');
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should handle number primitive', async ({ page }) => {
@@ -282,7 +260,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill('42');
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should handle string primitive', async ({ page }) => {
@@ -291,7 +269,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill('"just a string"');
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should handle very long key names', async ({ page }) => {
@@ -301,7 +279,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill(`{"${longKey}": "value"}`);
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should handle very long string values', async ({ page }) => {
@@ -311,7 +289,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill(`{"key": "${longValue}"}`);
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should handle duplicate keys', async ({ page }) => {
@@ -322,7 +300,7 @@ test.describe('Error Handling and Edge Cases', () => {
 			await textarea.fill('{"key": "first", "key": "second"}');
 
 			// Should still be valid JSON
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should handle floating point precision', async ({ page }) => {
@@ -331,7 +309,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill('{"pi": 3.141592653589793, "small": 0.00000001}');
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should handle scientific notation', async ({ page }) => {
@@ -340,7 +318,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill('{"large": 1e10, "small": 1e-10}');
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should handle negative numbers', async ({ page }) => {
@@ -349,7 +327,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			await textarea.fill('{"negative": -42, "negativeFloat": -3.14}');
 
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 	});
 
@@ -364,7 +342,7 @@ test.describe('Error Handling and Edge Cases', () => {
 			}
 
 			// Should still be responsive
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 
 		test('should handle undo/redo limit gracefully', async ({ page }) => {
@@ -384,7 +362,7 @@ test.describe('Error Handling and Edge Cases', () => {
 			}
 
 			// Should still be functional
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 	});
 });

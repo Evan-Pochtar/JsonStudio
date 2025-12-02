@@ -372,7 +372,7 @@ test.describe('Format and Sort Operations', () => {
 			await page.click('button:has-text("Apply Sort")');
 
 			// Verify still valid JSON
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 	});
 });

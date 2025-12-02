@@ -337,7 +337,7 @@ test.describe('Keyboard Shortcuts and Navigation', () => {
 
 			// Should still work
 			await expect(page.locator('text=users')).toBeVisible();
-			await expect(page.locator('text=Valid JSON')).toBeVisible();
+			await expect(page.locator('text=JSON syntax error')).not.toBeVisible();
 		});
 	});
 
