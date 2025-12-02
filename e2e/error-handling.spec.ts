@@ -25,7 +25,7 @@ test.describe('Error Handling and Edge Cases', () => {
 
 			// Should highlight error line
 			await expect(page.locator('text=JSON syntax error')).toBeVisible();
-			await expect(page.locator('text=line').or(page.locator('text=/line \\d+/'))).toBeVisible();
+			await expect(page.getByText('JSON syntax error on line 3')).toBeVisible();
 		});
 
 		test('should show validation status for invalid JSON', async ({ page }) => {
@@ -90,7 +90,9 @@ test.describe('Error Handling and Edge Cases', () => {
 			await page.click('button:has-text("Tree")');
 
 			// Should show root node
-			await expect(page.locator('text=root').or(page.locator('text=untitled'))).toBeVisible();
+			await expect(page.getByText('untitled.json')).toBeVisible();
+			await expect(page.getByRole('button', { name: 'root{}' })).toBeVisible();
+			await expect(page.locator('text=0 props')).toBeVisible();
 		});
 
 		test('should display empty object in table view', async ({ page }) => {

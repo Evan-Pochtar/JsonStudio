@@ -51,7 +51,11 @@
 		}
 	}
 
-	function handleInput(): void {
+	function handleInput(e?: Event): void {
+		if (e && e.target instanceof HTMLTextAreaElement) {
+			textContent = e.target.value;
+		}
+
 		updateLineNumbers();
 		
 		try {
@@ -59,17 +63,23 @@
 			lastStringified = JSON.stringify(parsed, null, indentSize);
 			update(parsed);
 			clearError();
-		} catch (e: any) {
-			const msg = e?.message ?? String(e);
+		} catch (err: any) {
+			const msg = err?.message ?? String(err);
 			errorMessage = msg;
 			
-			const match = msg.match(/line[:\s]+(\d+)/i) || msg.match(/position\s+(\d+)/i);
+			const lineMatch = msg.match(/line[:\s]+(\d+)/i);
+			const posMatch = msg.match(/position\s+(\d+)/i);
+			const match = lineMatch || posMatch;
+
 			if (match) {
-				const pos = parseInt(match[1], 10);
-				if (msg.toLowerCase().includes('position')) {
+				const num = parseInt(match[1], 10);
+				if (posMatch && posMatch[1]) {
+					const pos = parseInt(posMatch[1], 10);
 					errorLine = textContent.slice(0, pos).split('\n').length;
+				} else if (lineMatch && lineMatch[1]) {
+					errorLine = num;
 				} else {
-					errorLine = pos;
+					errorLine = null;
 				}
 			} else {
 				errorLine = null;
