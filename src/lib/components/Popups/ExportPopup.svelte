@@ -7,14 +7,14 @@
 	let {
 		data,
 		fileName,
+		exportFormat = $bindable('json'),
 		onClose
 	}: {
 		data: JSONValue;
 		fileName: string;
+		exportFormat?: 'json' | 'csv' | 'xlsx';
 		onClose: () => void;
 	} = $props();
-
-	let exportFormat: 'json' | 'csv' | 'xlsx' = $state('json');
 
 	function convertToCSV(data: JSONValue): string {
 		if (Array.isArray(data)) {
@@ -176,7 +176,9 @@
 
 		<div class="flex justify-end space-x-3">
 			<button onclick={onClose} class={TAILWIND_CLASSES.buttons.secondary} type="button"> Cancel </button>
-			<button onclick={handleExport} class={TAILWIND_CLASSES.buttons.success} type="button"> Export </button>
+			<button onclick={handleExport} title="Export Button" class={TAILWIND_CLASSES.buttons.success} type="button">
+				Export
+			</button>
 		</div>
 	</div>
 </div>

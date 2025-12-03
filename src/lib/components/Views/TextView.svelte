@@ -219,7 +219,9 @@
 							<div class="text-sm font-medium text-red-800">
 								JSON syntax error on line {errorLine}
 							</div>
-							<div class="mt-1 text-xs text-red-700">{errorMessage} Changes will not be saved until valid JSON is made.</div>
+							<div class="mt-1 text-xs text-red-700">
+								{errorMessage} Changes will not be saved until valid JSON is made.
+							</div>
 						</div>
 					</div>
 				</div>

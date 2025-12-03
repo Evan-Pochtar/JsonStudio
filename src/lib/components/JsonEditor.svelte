@@ -23,6 +23,7 @@
 	let showExportPopup = $state(false);
 	let showFormatPopup = $state(false);
 	let showSortPopup = $state(false);
+	let exportFormat: 'json' | 'csv' | 'xlsx' = $state('json');
 	let indentSize: number = $state(EDITOR_CONSTANTS.DEFAULT_INDENT_SIZE);
 	let currentData: JSONValue = {} as JSONObject;
 	let focusedPath: JSONPath = $state([]);
@@ -427,7 +428,7 @@
 	</div>
 
 	{#if showExportPopup}
-		<ExportPopup data={filteredData} {fileName} onClose={() => (showExportPopup = false)} />
+		<ExportPopup data={filteredData} {fileName} bind:exportFormat onClose={() => (showExportPopup = false)} />
 	{/if}
 
 	{#if showFormatPopup}

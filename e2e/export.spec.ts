@@ -63,43 +63,47 @@ test.describe('Export Functionality', () => {
 	});
 
 	test('should export as JSON', async ({ page }) => {
-		// Setup download listener
-		const downloadPromise = page.waitForEvent('download');
-
 		await page.click('button:has-text("Download / Export")');
-		await page.click('button:has-text("Export")');
+		await expect(page.locator('h2:has-text("Export Data")')).toBeVisible();
+
+		// Set up download listener
+		const downloadPromise = page.waitForEvent('download');
+		await page.getByTitle('Export Button', { exact: true }).click();
 
 		const download = await downloadPromise;
 		expect(download.suggestedFilename()).toMatch(/\.json$/);
 	});
 
 	test('should export as CSV', async ({ page }) => {
-		const downloadPromise = page.waitForEvent('download');
-
 		await page.click('button:has-text("Download / Export")');
 		await page.click('label:has-text("CSV")');
-		await page.click('button:has-text("Export")');
+
+		// Set up download listener
+		const downloadPromise = page.waitForEvent('download');
+		await page.getByTitle('Export Button', { exact: true }).click();
 
 		const download = await downloadPromise;
 		expect(download.suggestedFilename()).toMatch(/\.csv$/);
 	});
 
 	test('should export as Excel', async ({ page }) => {
-		const downloadPromise = page.waitForEvent('download');
-
 		await page.click('button:has-text("Download / Export")');
 		await page.click('label:has-text("Excel")');
-		await page.click('button:has-text("Export")');
+
+		// Set up download listener
+		const downloadPromise = page.waitForEvent('download');
+		await page.getByTitle('Export Button', { exact: true }).click();
 
 		const download = await downloadPromise;
 		expect(download.suggestedFilename()).toMatch(/\.xlsx$/);
 	});
 
 	test('should use correct filename for export', async ({ page }) => {
-		const downloadPromise = page.waitForEvent('download');
-
 		await page.click('button:has-text("Download / Export")');
-		await page.click('button:has-text("Export")');
+
+		// Set up download listener
+		const downloadPromise = page.waitForEvent('download');
+		await page.getByTitle('Export Button', { exact: true }).click();
 
 		const download = await downloadPromise;
 		expect(download.suggestedFilename()).toContain('sample');
@@ -110,10 +114,11 @@ test.describe('Export Functionality', () => {
 		await page.locator('span.text-blue-600:has-text("users")').first().dblclick();
 		await page.waitForSelector('text=Back to root');
 
-		const downloadPromise = page.waitForEvent('download');
-
 		await page.click('button:has-text("Download / Export")');
-		await page.click('button:has-text("Export")');
+
+		// Set up download listener
+		const downloadPromise = page.waitForEvent('download');
+		await page.getByTitle('Export Button', { exact: true }).click();
 
 		const download = await downloadPromise;
 
@@ -126,11 +131,12 @@ test.describe('Export Functionality', () => {
 		await page.locator('span.text-blue-600:has-text("users")').first().dblclick();
 		await page.waitForSelector('text=Back to root');
 
-		const downloadPromise = page.waitForEvent('download');
-
 		await page.click('button:has-text("Download / Export")');
 		await page.click('label:has-text("CSV")');
-		await page.click('button:has-text("Export")');
+
+		// Set up download listener
+		const downloadPromise = page.waitForEvent('download');
+		await page.getByTitle('Export Button', { exact: true }).click();
 
 		const download = await downloadPromise;
 		expect(download.suggestedFilename()).toMatch(/\.csv$/);
@@ -141,22 +147,24 @@ test.describe('Export Functionality', () => {
 		await page.locator('span.text-blue-600:has-text("settings")').first().dblclick();
 		await page.waitForSelector('text=Back to root');
 
-		const downloadPromise = page.waitForEvent('download');
-
 		await page.click('button:has-text("Download / Export")');
 		await page.click('label:has-text("CSV")');
-		await page.click('button:has-text("Export")');
+
+		// Set up download listener
+		const downloadPromise = page.waitForEvent('download');
+		await page.getByTitle('Export Button', { exact: true }).click();
 
 		const download = await downloadPromise;
 		expect(download.suggestedFilename()).toMatch(/\.csv$/);
 	});
 
 	test('should handle export of nested data structures', async ({ page }) => {
-		const downloadPromise = page.waitForEvent('download');
-
 		await page.click('button:has-text("Download / Export")');
 		await page.click('label:has-text("CSV")');
-		await page.click('button:has-text("Export")');
+
+		// Set up download listener
+		const downloadPromise = page.waitForEvent('download');
+		await page.getByTitle('Export Button', { exact: true }).click();
 
 		const download = await downloadPromise;
 		const path = await download.path();
@@ -169,8 +177,9 @@ test.describe('Export Functionality', () => {
 		await page.click('button:has-text("Download / Export")');
 		await expect(page.locator('h2:has-text("Export Data")')).toBeVisible();
 
+		// Set up download listener
 		const downloadPromise = page.waitForEvent('download');
-		await page.click('button:has-text("Export")');
+		await page.getByTitle('Export Button', { exact: true }).click();
 		await downloadPromise;
 
 		// Popup should be closed
@@ -197,10 +206,11 @@ test.describe('Export Functionality', () => {
 		const textarea = page.locator('textarea');
 		await textarea.fill('{"test": "modified"}');
 
-		const downloadPromise = page.waitForEvent('download');
-
 		await page.click('button:has-text("Download / Export")');
-		await page.click('button:has-text("Export")');
+
+		// Set up download listener
+		const downloadPromise = page.waitForEvent('download');
+		await page.getByTitle('Export Button', { exact: true }).click();
 
 		const download = await downloadPromise;
 		expect(download).toBeTruthy();
@@ -210,10 +220,11 @@ test.describe('Export Functionality', () => {
 		// Create new empty file
 		await page.click('button:has-text("New File")');
 
-		const downloadPromise = page.waitForEvent('download');
-
 		await page.click('button:has-text("Download / Export")');
-		await page.click('button:has-text("Export")');
+
+		// Set up download listener
+		const downloadPromise = page.waitForEvent('download');
+		await page.getByTitle('Export Button', { exact: true }).click();
 
 		const download = await downloadPromise;
 		expect(download.suggestedFilename()).toMatch(/\.json$/);
@@ -241,10 +252,11 @@ test.describe('Export Functionality', () => {
 
 		await page.waitForSelector('text=large.json');
 
-		const downloadPromise = page.waitForEvent('download');
-
 		await page.click('button:has-text("Download / Export")');
-		await page.click('button:has-text("Export")');
+
+		// Set up download listener
+		const downloadPromise = page.waitForEvent('download');
+		await page.getByTitle('Export Button', { exact: true }).click();
 
 		const download = await downloadPromise;
 		expect(download).toBeTruthy();
