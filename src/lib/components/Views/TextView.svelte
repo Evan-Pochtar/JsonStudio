@@ -196,7 +196,11 @@
 			class="min-w-12 overflow-hidden border-r bg-gray-50 px-3 py-4 font-mono text-xs text-gray-500 select-none"
 		>
 			{#each lineNumbers as lineNum}
-				<div class="leading-6" class:text-red-600={errorLine === lineNum} class:font-bold={errorLine === lineNum}>
+				<div
+					class="leading-6"
+					class:text-red-600={errorMessage && errorLine === lineNum}
+					class:font-bold={errorMessage && errorLine === lineNum}
+				>
 					{lineNum}
 				</div>
 			{/each}
@@ -214,9 +218,9 @@
 				spellcheck="false"
 			></textarea>
 
-			{#if errorLine}
+			{#if errorMessage}
 				<div
-					class="animate-in slide-in-from-bottom-2 fade-in absolute right-4 bottom-4 left-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 shadow-lg duration-300"
+					class="animate-in slide-in-from-bottom-2 fade-in absolute right-4 bottom-4 left-4 z-10 rounded-lg border border-red-300 bg-red-50 px-4 py-3 shadow-lg duration-300"
 				>
 					<div class="flex items-start space-x-2">
 						<svg class="mt-0.5 h-5 w-5 shrink-0 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -229,7 +233,11 @@
 						</svg>
 						<div class="flex-1">
 							<div class="text-sm font-medium text-red-800">
-								JSON syntax error on line {errorLine}
+								{#if errorLine}
+									JSON Syntax Error on Line {errorLine}
+								{:else}
+									JSON Syntax Error
+								{/if}
 							</div>
 							<div class="mt-1 text-xs text-red-700">
 								{errorMessage} Changes will not be saved until valid JSON is made.
