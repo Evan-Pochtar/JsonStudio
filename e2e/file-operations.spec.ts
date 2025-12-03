@@ -39,6 +39,7 @@ test.describe('File Operations', () => {
 		const fileName = 'test-file.json';
 
 		// Use file chooser to upload
+		await page.waitForLoadState('networkidle');
 		const fileChooserPromise = page.waitForEvent('filechooser');
 		await page.click('button:has-text("Open File")');
 		const fileChooser = await fileChooserPromise;
@@ -62,6 +63,7 @@ test.describe('File Operations', () => {
 			await dialog.accept();
 		});
 
+		await page.waitForLoadState('networkidle');
 		const fileChooserPromise = page.waitForEvent('filechooser');
 		await page.click('button:has-text("Open File")');
 		const fileChooser = await fileChooserPromise;
@@ -79,6 +81,7 @@ test.describe('File Operations', () => {
 			await dialog.accept();
 		});
 
+		await page.waitForLoadState('networkidle');
 		const fileChooserPromise = page.waitForEvent('filechooser');
 		await page.click('button:has-text("Open File")');
 		const fileChooser = await fileChooserPromise;
@@ -103,6 +106,7 @@ test.describe('File Operations', () => {
 			}))
 		};
 
+		await page.waitForLoadState('networkidle');
 		const fileChooserPromise = page.waitForEvent('filechooser');
 		await page.click('button:has-text("Open File")');
 		const fileChooser = await fileChooserPromise;
