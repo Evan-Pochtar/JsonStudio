@@ -148,6 +148,14 @@
 		syncFromData();
 
 		if (browser) {
+			requestAnimationFrame(() => {
+				if (textarea) {
+					textarea.focus();
+					const len = textarea.value.length;
+					textarea.selectionStart = textarea.selectionEnd = len;
+				}
+			});
+
 			function handleFormat(): void {
 				try {
 					const parsed = JSON.parse(textContent);
@@ -158,7 +166,11 @@
 					clearError();
 
 					setTimeout(() => {
-						if (textarea) textarea.focus();
+						if (textarea) {
+							textarea.focus();
+							const len = textarea.value.length;
+							textarea.selectionStart = textarea.selectionEnd = len;
+						}
 					}, 0);
 				} catch (e: any) {
 					errorMessage = e?.message ?? String(e);

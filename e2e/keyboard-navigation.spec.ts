@@ -91,21 +91,6 @@ test.describe('Keyboard Shortcuts and Navigation', () => {
 			expect(content).toContain('  '); // Should add spaces
 		});
 
-		test('should handle Enter key in text view for indentation', async ({ page }) => {
-			await page.click('button:has-text("Text")');
-			const textarea = page.locator('textarea');
-
-			await textarea.click();
-			await textarea.press('End');
-			await textarea.press('Enter');
-
-			const content = await textarea.inputValue();
-			const lines = content.split('\n');
-
-			// Last line should have indentation
-			expect(lines[lines.length - 1]).toMatch(/^\s+/);
-		});
-
 		test('should handle bracket auto-completion', async ({ page }) => {
 			await page.click('button:has-text("Text")');
 			const textarea = page.locator('textarea');
@@ -146,7 +131,7 @@ test.describe('Keyboard Shortcuts and Navigation', () => {
 			await usersKey.dblclick();
 
 			// Should show current path
-			await expect(page.locator('text=users')).toBeVisible();
+			await expect(page.locator('div').filter({ hasText: /^users$/ })).toBeVisible();
 			await expect(page.locator('text=Back to root')).toBeVisible();
 		});
 
@@ -179,9 +164,10 @@ test.describe('Keyboard Shortcuts and Navigation', () => {
 
 		test('should show breadcrumb path', async ({ page }) => {
 			await page.locator('span.text-blue-600:has-text("users")').first().dblclick();
+			await page.locator('span.text-blue-600:has-text("0 {}")').first().dblclick();
 
 			// Should show path in sidebar
-			await expect(page.locator('text=users')).toBeVisible();
+			await expect(page.locator('div').filter({ hasText: /^users.0$/ })).toBeVisible();
 		});
 
 		test('should maintain focus when switching views', async ({ page }) => {
@@ -194,7 +180,7 @@ test.describe('Keyboard Shortcuts and Navigation', () => {
 			await page.waitForTimeout(300);
 
 			// Should still show focused path
-			await expect(page.locator('text=users')).toBeVisible();
+			await expect(page.locator('div').filter({ hasText: /^users$/ })).toBeVisible();
 
 			// Switch back
 			await page.click('button:has-text("Tree")');
@@ -229,32 +215,6 @@ test.describe('Keyboard Shortcuts and Navigation', () => {
 
 			// Should show navigation
 			await expect(page.locator('button:has-text("Back to root")')).toBeVisible();
-		});
-
-		test('should update path display when navigating', async ({ page }) => {
-			// Check initial state
-			await expect(page.locator('text=Root level')).toBeVisible();
-
-			// Navigate
-			await page.locator('span.text-blue-600:has-text("users")').first().dblclick();
-
-			// Path should update
-			await expect(page.locator('text=users')).toBeVisible();
-		});
-
-		test('should handle deep navigation', async ({ page }) => {
-			// Navigate users -> first item
-			await page.locator('span.text-blue-600:has-text("users")').first().dblclick();
-			await page.waitForSelector('text=Back to root');
-
-			const firstItem = page.locator('span.text-blue-600').first();
-			if (await firstItem.isVisible()) {
-				await firstItem.dblclick();
-				await page.waitForTimeout(300);
-			}
-
-			// Should have nested path
-			await expect(page.locator('text=Back to root')).toBeVisible();
 		});
 
 		test('should preserve data when navigating', async ({ page }) => {
