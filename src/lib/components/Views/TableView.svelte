@@ -114,11 +114,11 @@
 		e.stopPropagation();
 
 		const allHeaders = document.querySelectorAll('th[data-column]');
-		const newWidths: Record<string, number> = {};
+		const newWidths: Record<string, number> = { ...columnWidths };
 
 		allHeaders.forEach((th) => {
 			const col = th.getAttribute('data-column');
-			if (col) {
+			if (col && !newWidths[col]) {
 				newWidths[col] = th.getBoundingClientRect().width;
 			}
 		});
@@ -210,25 +210,36 @@
 		};
 	});
 
+	function isSummaryValue(val: any): boolean {
+		return typeof val === 'string' && /^\[\d+ (items|props)\]$/.test(val);
+	}
+
 	const tableData = $derived(flattenForTable(data));
 	const columns = $derived(tableData.length > 0 ? Object.keys(tableData[0]).filter((k) => k !== 'path') : []);
 	const sortedData = $derived(sortKey ? sortByKey(tableData, sortKey, sortDirection) : tableData);
 	const isSimpleKeyValue = $derived(columns.length === 2 && columns.includes('key') && columns.includes('value'));
+	const isArrayView = $derived(Array.isArray(data));
+
+	$effect(() => {
+		const _ = columns;
+		columnWidths = {};
+	});
 </script>
 
-<div class="h-full overflow-auto" class:select-none={resizingColumn} class:cursor-col-resize={resizingColumn}>
+<div class="h-full overflow-auto bg-white" class:select-none={resizingColumn} class:cursor-col-resize={resizingColumn}>
 	{#if columns.length > 0}
-		<table class="w-full border-collapse" style="table-layout: auto;">
-			<thead class="sticky top-0 z-10 bg-gradient-to-b from-gray-50 to-gray-100 shadow-sm">
+		<table class="w-full border-collapse text-left text-sm" style="table-layout: auto;">
+			<thead class="sticky top-0 z-10 border-b border-gray-200 bg-gray-50 shadow-sm">
 				<tr>
 					{#each columns as column}
 						<th
-							class="group relative cursor-pointer items-center space-x-2 border-b-2 border-gray-200 px-4 py-3 text-xs font-semibold tracking-wider text-gray-700 transition-colors hover:text-gray-900"
+							class="group relative cursor-pointer px-4 py-3 text-xs font-semibold tracking-wider whitespace-nowrap text-gray-500 uppercase"
 							data-column={column}
-							style="min-width: {columnWidths[column] || EDITOR_CONSTANTS.DEFAULT_COL_WIDTH}px; width: {columnWidths[
-								column
-							] || EDITOR_CONSTANTS.DEFAULT_COL_WIDTH}px; max-width: {columnWidths[column] ||
-								EDITOR_CONSTANTS.DEFAULT_COL_WIDTH}px;"
+							style="
+								min-width: {columnWidths[column] || 100}px; 
+								width: {columnWidths[column] ? `${columnWidths[column]}px` : 'auto'}; 
+								max-width: {columnWidths[column] ? `${columnWidths[column]}px` : 'none'};
+							"
 							oncontextmenu={(e) => handleContextMenu(e, column)}
 							onclick={(e) => {
 								if ((e.target as HTMLElement).closest('button[aria-label="Resize column"]')) return;
@@ -240,11 +251,11 @@
 								}
 							}}
 						>
-							<div class="flex h-full w-full">
-								<span class="flex-1 truncate text-left" title={column}>{column}</span>
+							<div class="flex items-center space-x-1">
+								<span class="truncate" title={column}>{column}</span>
 								{#if sortKey === column}
 									<svg
-										class="h-3.5 w-3.5 flex-shrink-0 text-blue-600 transition-transform {sortDirection === 'desc'
+										class="h-3.5 w-3.5 flex-shrink-0 text-blue-500 transition-transform {sortDirection === 'desc'
 											? 'rotate-180'
 											: ''}"
 										fill="none"
@@ -256,7 +267,7 @@
 								{/if}
 							</div>
 							<button
-								class="absolute top-0 right-0 bottom-0 w-[8px] cursor-col-resize border-0 bg-transparent p-0 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-blue-400"
+								class="absolute top-0 right-0 bottom-0 w-[8px] cursor-col-resize touch-none border-r-2 border-transparent bg-transparent transition-colors group-hover:border-gray-300 hover:border-blue-400"
 								onmousedown={(e) => {
 									e.stopPropagation();
 									startResize(e, column);
@@ -273,25 +284,39 @@
 					{/each}
 				</tr>
 			</thead>
-			<tbody class="divide-y divide-gray-200 bg-white">
+			<tbody class="divide-y divide-gray-100">
 				{#each sortedData as row, rowIndex}
-					<tr class="transition-colors duration-150 hover:bg-blue-50/30">
+					<tr class="group/row transition-colors even:bg-gray-50/30 hover:bg-blue-50/40">
 						{#each columns as column}
 							{@const cellKey = getCellKey(rowIndex, column)}
 							{@const isEditing = editingCell === cellKey}
 							{@const cellValue = typeof row[column] === 'object' ? JSON.stringify(row[column]) : (row[column] ?? '')}
 							{@const shouldTruncate = !isEditing && !expandedCells.has(cellKey)}
-							<td class="relative border-r border-gray-100 px-4 py-2 text-sm text-gray-900" data-column={column}>
+
+							<td class="relative border-r border-gray-100 px-4 py-2.5 last:border-r-0" data-column={column}>
 								{#if column === 'key'}
+									{#if isArrayView}
+										<button
+											class="w-full truncate rounded-md px-2 py-1 text-left font-medium text-blue-600 transition-all duration-200 hover:bg-blue-100"
+											ondblclick={() => handleDoubleClick(row.path)}
+										>
+											{row[column]}
+										</button>
+									{:else}
+										<div class="w-full truncate px-2 py-1 text-left font-medium text-gray-900 select-text">
+											{row[column]}
+										</div>
+									{/if}
+								{:else if isSummaryValue(row[column])}
 									<button
-										class="w-full truncate rounded-md px-2 py-1 text-left font-medium text-blue-600 transition-all duration-200 hover:bg-blue-100"
+										class="w-full rounded px-2 py-1 text-left font-medium text-blue-600 transition-colors hover:bg-blue-50"
 										ondblclick={() => handleDoubleClick(row.path)}
 									>
 										{row[column]}
 									</button>
 								{:else if isComplex(row[column])}
 									<button
-										class="w-full truncate rounded-md px-2 py-1 text-left text-purple-600 transition-all duration-200 hover:bg-purple-100"
+										class="w-full truncate rounded px-2 py-1 text-left text-xs text-purple-600 transition-colors hover:bg-purple-50"
 										ondblclick={() => handleDoubleClick(row.path)}
 									>
 										{row[column]}
@@ -316,12 +341,12 @@
 													target.style.height = 'auto';
 													target.style.height = Math.min(target.scrollHeight, EDITOR_CONSTANTS.MAX_CELL_HEIGHT) + 'px';
 												}}
-												class="w-full resize-none overflow-auto rounded-md border border-blue-500 bg-white px-2 py-1 transition-all duration-200 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+												class="w-full resize-none overflow-hidden rounded border border-blue-400 bg-white px-2 py-1 text-xs shadow-sm focus:ring-2 focus:ring-blue-200 focus:outline-none"
 												rows="1"
 											></textarea>
 										{:else}
 											<button
-												class="w-full cursor-text overflow-hidden rounded-md border-0 bg-transparent px-2 py-1 transition-all duration-200 hover:bg-gray-50"
+												class="block w-full cursor-text rounded border border-transparent px-2 py-1 text-left text-gray-800 transition-colors hover:border-gray-200 hover:bg-white"
 												class:line-clamp-2={shouldTruncate}
 												style={shouldTruncate
 													? ''
@@ -335,7 +360,7 @@
 												}}
 												tabindex="0"
 											>
-												{cellValue}
+												{cellValue === '' ? '\u00A0' : cellValue}
 											</button>
 										{/if}
 									</div>
@@ -347,33 +372,59 @@
 			</tbody>
 		</table>
 	{:else}
-		<div class="flex h-full items-center justify-center text-gray-500">No tabular data to display</div>
+		<div class="flex h-full flex-col items-center justify-center space-y-2 text-gray-400">
+			<svg class="h-12 w-12 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+				/>
+			</svg>
+			<span class="text-sm font-medium">No tabular data to display</span>
+		</div>
 	{/if}
 </div>
 
 {#if contextMenu}
 	<div
-		class="fixed z-50 w-48 rounded-lg border border-gray-200 bg-white shadow-lg"
+		class="ring-opacity-5 fixed z-50 w-48 rounded-lg border border-gray-100 bg-white p-1 shadow-xl ring-1 ring-black"
 		style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={() => {}}
 		role="menu"
 		tabindex="0"
 	>
-		<div class="py-1">
+		<button
+			class="flex w-full items-center space-x-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
+			onclick={handleExpandColumn}
+			type="button"
+		>
+			<svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+			</svg>
+			<span>Expand Column</span>
+		</button>
+		<button
+			class="flex w-full items-center space-x-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
+			onclick={handleSortByColumn}
+			type="button"
+		>
+			<svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
+				/>
+			</svg>
+			<span>Sort By</span>
+		</button>
+		{#if !isSimpleKeyValue}
+			<div class="my-1 border-t border-gray-100"></div>
 			<button
-				class="flex w-full items-center space-x-2 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100"
-				onclick={handleExpandColumn}
-				type="button"
-			>
-				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
-				</svg>
-				<span>Expand Column</span>
-			</button>
-			<button
-				class="flex w-full items-center space-x-2 px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100"
-				onclick={handleSortByColumn}
+				class="flex w-full items-center space-x-2 rounded-md px-3 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50"
+				onclick={handleDeleteKey}
 				type="button"
 			>
 				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -381,30 +432,12 @@
 						stroke-linecap="round"
 						stroke-linejoin="round"
 						stroke-width="2"
-						d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
+						d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
 					/>
 				</svg>
-				<span>Sort By</span>
+				<span>Delete Key</span>
 			</button>
-			{#if !isSimpleKeyValue}
-				<div class="my-1 border-t border-gray-200"></div>
-				<button
-					class="flex w-full items-center space-x-2 px-4 py-2 text-left text-sm text-red-700 transition-colors hover:bg-red-50"
-					onclick={handleDeleteKey}
-					type="button"
-				>
-					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-						/>
-					</svg>
-					<span>Delete Key</span>
-				</button>
-			{/if}
-		</div>
+		{/if}
 	</div>
 {/if}
 

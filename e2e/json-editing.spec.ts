@@ -172,7 +172,7 @@ test.describe('JSON Editing', () => {
 			await page.click('th:has-text("key")');
 
 			// Should show sort indicator
-			await expect(page.locator('svg.text-blue-600')).toBeVisible();
+			await expect(page.locator('svg.text-blue-500')).toBeVisible();
 		});
 
 		test('should reverse sort on second click', async ({ page }) => {
@@ -187,7 +187,7 @@ test.describe('JSON Editing', () => {
 			await page.waitForTimeout(100);
 
 			// Sort arrow should be rotated
-			const arrow = page.locator('svg.text-blue-600').first();
+			const arrow = page.locator('svg.text-blue-500').first();
 			await expect(arrow).toHaveClass(/rotate-180/);
 		});
 
@@ -209,7 +209,7 @@ test.describe('JSON Editing', () => {
 		});
 
 		test('should navigate into complex values', async ({ page }) => {
-			const complexCell = page.locator('button.text-purple-600').first();
+			const complexCell = page.locator('button.text-blue-600').first();
 			await complexCell.dblclick();
 
 			// Should navigate to that path
