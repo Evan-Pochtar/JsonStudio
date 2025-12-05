@@ -215,6 +215,42 @@ test.describe('JSON Editing', () => {
 			// Should navigate to that path
 			await expect(page.locator('text=Back to root')).toBeVisible();
 		});
+
+		test('should edit object keys but NOT array indices', async ({ page }) => {
+			// Navigate to an object (users[0])
+			await page.locator('td button:has-text("[3 items]")').first().dblclick();
+			await page.waitForTimeout(100); 
+			
+			// Try to edit the 'id' key
+			const idKeyButton = page.locator('td button:has-text("David Smith")').first();
+			await expect(idKeyButton).toBeVisible();
+			await idKeyButton.click();
+
+			// It should turn into a textarea
+			const textarea = page.locator('td textarea').first();
+			await expect(textarea).toBeVisible();
+			
+			// Rename 'id' to 'userId'
+			await textarea.fill('John Doe');
+			await textarea.blur();
+
+			// Verify change
+			await expect(page.locator('td button:has-text("John Doe")')).toBeVisible();
+			await expect(page.locator('td button:has-text("David Smith")')).not.toBeVisible();
+			await expect(page.locator('text=Modified')).toBeVisible();
+
+			// Verify we see indices 0, 1, 2...
+			const indexButton = page.locator('td button:has-text("0")').first();
+			await expect(indexButton).toBeVisible();
+
+			// Clicking index should NOT open textarea
+			await indexButton.click();
+			await expect(page.locator('td textarea')).not.toBeVisible();
+
+			// Double clicking index should drill down
+			await indexButton.dblclick();
+			await expect(page.locator('text=Back to root')).toBeVisible();
+		});
 	});
 
 	test.describe('Text View Editing', () => {

@@ -83,6 +83,26 @@
 		update(newData);
 	}
 
+	function updateKey(oldKey: string, newKey: string): void {
+		if (oldKey === newKey || !newKey.trim()) return;
+		if (Array.isArray(data)) return;
+
+		const newData = safeClone(data) as Record<string, any>;
+		
+		if (Object.prototype.hasOwnProperty.call(newData, newKey)) return;
+
+		const result: Record<string, any> = {};
+		for (const key of Object.keys(newData)) {
+			if (key === oldKey) {
+				result[newKey] = newData[key];
+			} else {
+				result[key] = newData[key];
+			}
+		}
+
+		update(result);
+	}
+
 	function handleDoubleClick(path: JSONPath): void {
 		focus(path);
 	}
@@ -226,6 +246,7 @@
 	});
 </script>
 
+<!-- svelte-ignore a11y_autofocus -->
 <div class="h-full overflow-auto bg-white" class:select-none={resizingColumn} class:cursor-col-resize={resizingColumn}>
 	{#if columns.length > 0}
 		<table class="w-full border-collapse text-left text-sm" style="table-layout: auto;">
@@ -303,8 +324,37 @@
 											{row[column]}
 										</button>
 									{:else}
-										<div class="w-full truncate px-2 py-1 text-left font-medium text-gray-900 select-text">
-											{row[column]}
+										<div class="relative w-full">
+											{#if isEditing}
+												<textarea
+													autofocus
+													value={row[column]}
+													onchange={(e) => {
+														updateKey(row[column], (e.target as HTMLTextAreaElement).value);
+														stopEditing();
+													}}
+													onblur={stopEditing}
+													onfocus={(e) => {
+														const target = e.target as HTMLTextAreaElement;
+														target.style.height = 'auto';
+														target.style.height = Math.min(target.scrollHeight, EDITOR_CONSTANTS.MAX_CELL_HEIGHT) + 'px';
+													}}
+													oninput={(e) => {
+														const target = e.target as HTMLTextAreaElement;
+														target.style.height = 'auto';
+														target.style.height = Math.min(target.scrollHeight, EDITOR_CONSTANTS.MAX_CELL_HEIGHT) + 'px';
+													}}
+													class="w-full resize-none overflow-hidden rounded border border-blue-400 bg-white px-2 py-1 text-xs shadow-sm focus:ring-2 focus:ring-blue-200 focus:outline-none"
+													rows="1"
+												></textarea>
+											{:else}
+												<button
+													class="block w-full cursor-text rounded border border-transparent px-2 py-1 text-left text-gray-800 transition-colors hover:border-gray-200 hover:bg-white"
+													onclick={() => startEditing(rowIndex, column)}
+												>
+													{row[column]}
+												</button>
+											{/if}
 										</div>
 									{/if}
 								{:else if isSummaryValue(row[column])}
@@ -325,9 +375,11 @@
 									<div class="relative w-full">
 										{#if isEditing}
 											<textarea
+												autofocus
 												value={cellValue}
 												onchange={(e) => {
-													updateValue(row.path, (e.target as HTMLTextAreaElement).value);
+													const targetPath = isSimpleKeyValue ? row.path : [...row.path, column];
+													updateValue(targetPath, (e.target as HTMLTextAreaElement).value);
 													stopEditing();
 												}}
 												onblur={stopEditing}
