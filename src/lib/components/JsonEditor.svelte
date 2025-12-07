@@ -185,18 +185,28 @@
 	function handleFormatted(formattedText: string, newIndentSize: number): void {
 		try {
 			const parsed = JSON.parse(formattedText);
+			const oldData = focusedPath.length === 0 ? currentData : getNestedValue(currentData, focusedPath);
+			const oldFormatted = JSON.stringify(oldData, null, indentSize);
+			const newFormatted = JSON.stringify(parsed, null, newIndentSize);
+			const hasChanged = oldFormatted !== newFormatted;
+			
 			indentSize = newIndentSize;
 			if (focusedPath.length === 0) {
-				addToUndoStack();
-				currentData = parsed;
+				if (hasChanged) {
+					addToUndoStack();
+					currentData = parsed;
+					isModified = true;
+				}
 			} else {
-				const newData = safeClone(currentData);
-				setNestedValue(newData, focusedPath, parsed);
-				addToUndoStack();
-				currentData = newData;
+				if (hasChanged) {
+					const newData = safeClone(currentData);
+					setNestedValue(newData, focusedPath, parsed);
+					addToUndoStack();
+					currentData = newData;
+					isModified = true;
+				}
 			}
 
-			isModified = true;
 			updateFilteredData();
 			buildSearchIndex();
 		} catch (e) {
@@ -205,6 +215,10 @@
 	}
 
 	function handleSorted(sortedData: JSONValue): void {
+		const oldData = focusedPath.length === 0 ? currentData : getNestedValue(currentData, focusedPath);
+		const hasChanged = JSON.stringify(oldData) !== JSON.stringify(sortedData);
+		if (!hasChanged) return;
+		
 		addToUndoStack();
 		if (focusedPath.length === 0) {
 			currentData = safeClone(sortedData);
