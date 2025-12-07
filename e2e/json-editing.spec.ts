@@ -251,6 +251,24 @@ test.describe('JSON Editing', () => {
 			await indexButton.dblclick();
 			await expect(page.locator('text=Back to root')).toBeVisible();
 		});
+
+		test('should show warning when creating duplicate keys', async ({ page }) => {
+			const usersKeyButton = page.locator('td button:has-text("users")').first();
+			
+			// Click to edit 'users' key
+			await usersKeyButton.click();
+			
+			// Fill with 'settings'
+			const textarea = page.locator('td textarea').first();
+			await textarea.fill('settings');
+			await textarea.blur();
+
+			// Verify Warning Toast appears
+			await expect(page.getByRole('alert')).toContainText('Key "settings" already exists');
+			
+			// Verify the key did NOT change
+			await expect(page.locator('td button:has-text("users")').first()).toBeVisible();
+		});
 	});
 
 	test.describe('Text View Editing', () => {

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { fly } from 'svelte/transition';
+  import { quintOut } from 'svelte/easing';
 	import type { TableRow, JSONValue, JSONPath } from '$lib/types';
 	import { safeClone, flattenObject, parseValue, setNestedValue, isComplex, sortByKey } from '$lib/utils/helpers';
 	import { EDITOR_CONSTANTS } from '$lib/utils/constants';
@@ -27,6 +29,7 @@
 	let resizingColumn: string | null = $state(null);
 	let resizeStartX = 0;
 	let resizeStartWidth = 0;
+	let notification: { message: string; type: 'error' } | null = $state(null);
 
 	function flattenForTable(obj: JSONValue, prefix = ''): TableRow[] {
 		const items: TableRow[] = [];
@@ -86,10 +89,15 @@
 	function updateKey(oldKey: string, newKey: string): void {
 		if (oldKey === newKey || !newKey.trim()) return;
 		if (Array.isArray(data)) return;
-
 		const newData = safeClone(data) as Record<string, any>;
 		
-		if (Object.prototype.hasOwnProperty.call(newData, newKey)) return;
+		if (Object.prototype.hasOwnProperty.call(newData, newKey)) {
+			notification = { message: `Key "${newKey}" already exists`, type: 'error' };
+			setTimeout(() => {
+				notification = null;
+			}, 3000);
+			return;
+		}
 
 		const result: Record<string, any> = {};
 		for (const key of Object.keys(newData)) {
@@ -437,6 +445,38 @@
 		</div>
 	{/if}
 </div>
+
+{#if notification}
+	<div
+		transition:fly={{ y: 50, duration: 800, easing: quintOut }}
+		class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 flex max-w-2xl w-full items-center justify-between gap-6 rounded-xl border border-red-300 bg-red-100 px-6 py-5 shadow-2xl ring-2 ring-red-200/50"
+		role="alert"
+	>
+		<div class="flex items-center gap-4 overflow-hidden">
+			<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-200 text-red-700">
+				<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+				</svg>
+			</div>
+
+			<div class="flex items-baseline gap-2 truncate text-base">
+				<span class="text-lg font-extrabold text-red-900">Error:</span>
+				<span class="font-medium text-red-800">{notification.message}</span>
+			</div>
+		</div>
+
+		<button 
+			type="button" 
+			onclick={() => notification = null}
+			class="shrink-0 rounded-md p-1.5 text-red-600 transition-colors hover:bg-red-200 hover:text-red-800 focus:ring-2 focus:ring-red-400 focus:outline-none"
+			aria-label="Close notification"
+		>
+			<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+			</svg>
+		</button>
+	</div>
+{/if}
 
 {#if contextMenu}
 	<div
