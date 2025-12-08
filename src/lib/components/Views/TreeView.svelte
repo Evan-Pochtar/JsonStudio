@@ -6,7 +6,6 @@
 		pathToKey,
 		getNestedValue,
 		setNestedValue,
-		deleteNestedValue,
 		parseValue,
 		adjustTextareaHeight
 	} from '$lib/utils/helpers';
@@ -83,7 +82,7 @@
 
 	function deleteItem(path: JSONPath): void {
 		if (path.length === 0) return;
-		
+
 		const key = String(path[path.length - 1]);
 		keyToDelete = key;
 		showDeleteKeyPopup = true;
@@ -131,7 +130,7 @@
 
 			const newData = safeClone(data);
 			const newParent = parentPath.length === 0 ? newData : getNestedValue(newData, parentPath);
-			
+
 			if (newParent && typeof newParent === 'object' && !Array.isArray(newParent)) {
 				const result: Record<string, any> = {};
 				for (const key of Object.keys(newParent)) {

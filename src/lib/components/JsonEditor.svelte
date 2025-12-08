@@ -189,7 +189,7 @@
 			const oldFormatted = JSON.stringify(oldData, null, indentSize);
 			const newFormatted = JSON.stringify(parsed, null, newIndentSize);
 			const hasChanged = oldFormatted !== newFormatted;
-			
+
 			indentSize = newIndentSize;
 			if (focusedPath.length === 0) {
 				if (hasChanged) {
@@ -218,7 +218,7 @@
 		const oldData = focusedPath.length === 0 ? currentData : getNestedValue(currentData, focusedPath);
 		const hasChanged = JSON.stringify(oldData) !== JSON.stringify(sortedData);
 		if (!hasChanged) return;
-		
+
 		addToUndoStack();
 		if (focusedPath.length === 0) {
 			currentData = safeClone(sortedData);
