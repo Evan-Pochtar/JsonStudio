@@ -450,6 +450,11 @@
 	{/if}
 
 	{#if showSortPopup}
-		<SortPopup data={filteredData} onSort={handleSorted} onClose={() => (showSortPopup = false)} />
+		<SortPopup
+			data={filteredData}
+			onSort={handleSorted}
+			onNavigate={(key) => focusOnPath([...focusedPath, key])}
+			onClose={() => (showSortPopup = false)}
+		/>
 	{/if}
 </div>

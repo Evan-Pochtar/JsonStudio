@@ -143,7 +143,7 @@ test.describe('Format and Sort Operations', () => {
 		test('should open sort popup', async ({ page }) => {
 			await page.click('button:has-text("Sort Data")');
 
-			await expect(page.locator('h2:has-text("Sort Data")')).toBeVisible();
+			await expect(page.locator('h2:has-text("Sort Object Keys")')).toBeVisible();
 		});
 
 		test('should close sort popup with Cancel', async ({ page }) => {
