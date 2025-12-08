@@ -325,8 +325,8 @@
 					<div class="mr-2 h-6 w-6 shrink-0"></div>
 				{/if}
 
-				<div class="flex flex-1 flex-col py-1.5">
-					<div class="flex items-center">
+				<div class="flex flex-1 flex-col py-1.5 min-w-0">
+					<div class="flex items-center min-w-0">
 						{#if renamingPath === pathToKey(node.path)}
 							<textarea
 								bind:this={renameContainerElement}
@@ -345,10 +345,11 @@
 							></textarea>
 						{:else}
 							<span
-								class="cursor-pointer rounded-md px-2 py-1 font-semibold text-blue-600 transition-all duration-200 hover:bg-blue-100"
+								class="cursor-pointer rounded-md px-2 py-1 font-semibold text-blue-600 transition-all duration-200 hover:bg-blue-100 truncate max-w-xs shrink-0"
 								ondblclick={(e) => handleDoubleClick(e, node.path, node.value)}
 								role="button"
 								tabindex="0"
+								title={node.key !== null ? String(node.key) : getRootName()}
 							>
 								{#if node.key !== null}
 									{node.key}
@@ -378,10 +379,15 @@
 							></textarea>
 						{:else}
 							<span
-								class="ml-2 rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600"
+								class="ml-2 rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600 truncate"
 								ondblclick={(e) => handleDoubleClick(e, node.path, node.value)}
 								role="button"
 								tabindex="0"
+								title={node.isArray
+									? `${node.childCount} items`
+									: node.isObject
+										? `${node.childCount} props`
+										: String(node.value)}
 							>
 								{#if node.isArray}
 									{node.childCount} items
