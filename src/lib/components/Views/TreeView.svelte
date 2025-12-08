@@ -4,6 +4,7 @@
 	import {
 		safeClone,
 		pathToKey,
+		getNestedValue,
 		setNestedValue,
 		deleteNestedValue,
 		parseValue,
@@ -11,6 +12,7 @@
 	} from '$lib/utils/helpers';
 	import { EDITOR_CONSTANTS } from '$lib/utils/constants';
 	import AddKeyPopup from '../Popups/AddKeyPopup.svelte';
+	import DeleteKeyPopup from '../Popups/DeleteKeyPopup.svelte';
 
 	let {
 		focus,
@@ -30,6 +32,11 @@
 	let containerElement: HTMLTextAreaElement | null = $state(null);
 	let showAddKeyPopup = $state(false);
 	let addKeyTargetPath: JSONPath = $state([]);
+	let showDeleteKeyPopup = $state(false);
+	let keyToDelete = $state('');
+	let renamingPath: string | null = $state(null);
+	let renameValue = $state('');
+	let renameContainerElement: HTMLTextAreaElement | null = $state(null);
 
 	function toggleNode(path: JSONPath): void {
 		const key = pathToKey(path);
@@ -75,9 +82,11 @@
 	}
 
 	function deleteItem(path: JSONPath): void {
-		const newData = safeClone(data);
-		deleteNestedValue(newData, path);
-		update(newData);
+		if (path.length === 0) return;
+		
+		const key = String(path[path.length - 1]);
+		keyToDelete = key;
+		showDeleteKeyPopup = true;
 	}
 
 	function openAddKeyPopup(path: JSONPath): void {
@@ -85,9 +94,93 @@
 		showAddKeyPopup = true;
 	}
 
+	async function startRenaming(path: JSONPath): Promise<void> {
+		if (path.length === 0) return;
+		if (Array.isArray(data) || (path.length > 1 && isPathInArray(path))) return;
+
+		const key = String(path[path.length - 1]);
+		renamingPath = pathToKey(path);
+		renameValue = key;
+		await tick();
+		if (renameContainerElement) {
+			adjustTextareaHeight(renameContainerElement);
+			renameContainerElement.focus();
+		}
+	}
+
+	function finishRenaming(path: JSONPath): void {
+		if (!renamingPath || path.length === 0) return;
+
+		const oldKey = String(path[path.length - 1]);
+		const newKey = renameValue.trim();
+
+		if (!newKey || newKey === oldKey) {
+			cancelRenaming();
+			return;
+		}
+
+		const parentPath = path.slice(0, -1);
+		const parent = parentPath.length === 0 ? data : getNestedValue(data, parentPath);
+
+		if (parent && typeof parent === 'object' && !Array.isArray(parent)) {
+			if (Object.prototype.hasOwnProperty.call(parent, newKey)) {
+				alert(`Key "${newKey}" already exists`);
+				cancelRenaming();
+				return;
+			}
+
+			const newData = safeClone(data);
+			const newParent = parentPath.length === 0 ? newData : getNestedValue(newData, parentPath);
+			
+			if (newParent && typeof newParent === 'object' && !Array.isArray(newParent)) {
+				const result: Record<string, any> = {};
+				for (const key of Object.keys(newParent)) {
+					if (key === oldKey) {
+						result[newKey] = newParent[key];
+					} else {
+						result[key] = newParent[key];
+					}
+				}
+
+				if (parentPath.length === 0) {
+					update(result);
+				} else {
+					setNestedValue(newData, parentPath, result);
+					update(newData);
+				}
+			}
+		}
+
+		cancelRenaming();
+	}
+
+	function cancelRenaming(): void {
+		renamingPath = null;
+		renameValue = '';
+	}
+
 	function cancelEditing(): void {
 		editingPath = null;
 		editValue = '';
+	}
+
+	function isPathInArray(path: JSONPath): boolean {
+		if (path.length === 0) return false;
+		let current: any = data;
+		for (let i = 0; i < path.length - 1; i++) {
+			current = current[path[i]];
+			if (Array.isArray(current)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	function canRenameKey(path: JSONPath): boolean {
+		if (path.length === 0) return false;
+		if (Array.isArray(data)) return false;
+		if (isPathInArray(path)) return false;
+		return true;
 	}
 
 	function getRootName(): string {
@@ -145,6 +238,10 @@
 				const node = visibleNodes.find((n) => pathToKey(n.path) === editingPath);
 				if (node) finishEditing(node.path);
 			}
+			if (renamingPath && renameContainerElement && !renameContainerElement.contains(e.target as Node)) {
+				const node = visibleNodes.find((n) => pathToKey(n.path) === renamingPath);
+				if (node) finishRenaming(node.path);
+			}
 		};
 
 		document.addEventListener('mousedown', handleClickOutside);
@@ -154,6 +251,9 @@
 	$effect(() => {
 		if (containerElement && editingPath) {
 			adjustTextareaHeight(containerElement);
+		}
+		if (renameContainerElement && renamingPath) {
+			adjustTextareaHeight(renameContainerElement);
 		}
 	});
 
@@ -228,23 +328,41 @@
 
 				<div class="flex flex-1 flex-col py-1.5">
 					<div class="flex items-center">
-						<span
-							class="cursor-pointer rounded-md px-2 py-1 font-semibold text-blue-600 transition-all duration-200 hover:bg-blue-100"
-							ondblclick={(e) => handleDoubleClick(e, node.path, node.value)}
-							role="button"
-							tabindex="0"
-						>
-							{#if node.key !== null}
-								{node.key}
-								{#if node.isArray}
-									<span class="text-purple-600">[]</span>
-								{:else if node.isObject}
-									<span class="text-purple-600">{'{}'}</span>
+						{#if renamingPath === pathToKey(node.path)}
+							<textarea
+								bind:this={renameContainerElement}
+								bind:value={renameValue}
+								onblur={() => finishRenaming(node.path)}
+								oninput={(e) => adjustTextareaHeight(e.currentTarget)}
+								onkeydown={(e) => {
+									if (e.key === 'Enter' && !e.shiftKey) {
+										e.preventDefault();
+										finishRenaming(node.path);
+									}
+									if (e.key === 'Escape') cancelRenaming();
+								}}
+								class="min-h-[2rem] flex-1 resize-none overflow-auto rounded-md border border-blue-500 px-2 py-1 text-sm font-semibold text-blue-600 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+								style="max-height: {EDITOR_CONSTANTS.MAX_EDIT_HEIGHT}px;"
+							></textarea>
+						{:else}
+							<span
+								class="cursor-pointer rounded-md px-2 py-1 font-semibold text-blue-600 transition-all duration-200 hover:bg-blue-100"
+								ondblclick={(e) => handleDoubleClick(e, node.path, node.value)}
+								role="button"
+								tabindex="0"
+							>
+								{#if node.key !== null}
+									{node.key}
+									{#if node.isArray}
+										<span class="text-purple-600">[]</span>
+									{:else if node.isObject}
+										<span class="text-purple-600">{'{}'}</span>
+									{/if}
+								{:else}
+									{getRootName()}<span class="text-purple-600">{getRootBrackets()}</span>
 								{/if}
-							{:else}
-								{getRootName()}<span class="text-purple-600">{getRootBrackets()}</span>
-							{/if}
-						</span>
+							</span>
+						{/if}
 
 						{#if editingPath === pathToKey(node.path)}
 							<textarea
@@ -281,6 +399,8 @@
 
 					{#if editingPath === pathToKey(node.path)}
 						<div class="mt-2 ml-2 text-xs text-gray-500">Press Ctrl+S to save, Esc to cancel</div>
+					{:else if renamingPath === pathToKey(node.path)}
+						<div class="mt-2 ml-2 text-xs text-gray-500">Press Enter to save, Esc to cancel</div>
 					{/if}
 				</div>
 
@@ -301,6 +421,15 @@
 							type="button"
 						>
 							Add Key
+						</button>
+					{/if}
+					{#if canRenameKey(node.path)}
+						<button
+							class="rounded-md bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700 transition-all duration-200 hover:bg-purple-200"
+							onclick={() => startRenaming(node.path)}
+							type="button"
+						>
+							Rename
 						</button>
 					{/if}
 					{#if node.path.length > 0}
@@ -327,5 +456,17 @@
 			showAddKeyPopup = false;
 		}}
 		onClose={() => (showAddKeyPopup = false)}
+	/>
+{/if}
+
+{#if showDeleteKeyPopup}
+	<DeleteKeyPopup
+		{data}
+		{keyToDelete}
+		onDelete={(newData) => {
+			update(newData);
+			showDeleteKeyPopup = false;
+		}}
+		onClose={() => (showDeleteKeyPopup = false)}
 	/>
 {/if}

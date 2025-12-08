@@ -70,14 +70,199 @@ test.describe('JSON Editing', () => {
 			// Hover over a node to show delete button
 			const nodeDiv = page.locator('div.group').filter({ hasText: 'settings' }).first();
 			await nodeDiv.hover();
-
+			
 			// Click delete button
 			const deleteButton = nodeDiv.locator('button:has-text("Delete")');
 			await deleteButton.click();
-
+			
+			// Should show delete confirmation popup
+			await expect(page.locator('h2:has-text("Delete Key")')).toBeVisible();
+			await expect(page.locator('text=Are you sure you want to delete "settings"?')).toBeVisible();
+			
+			// Confirm deletion
+			await page.click('button:has-text("Delete Key")');
+			
 			// Settings should be removed
 			await expect(page.locator('span.text-blue-600:has-text("settings")')).not.toBeVisible();
 			await expect(page.locator('text=Modified')).toBeVisible();
+		});
+
+		test('should cancel delete operation', async ({ page }) => {
+			// Hover over a node to show delete button
+			const nodeDiv = page.locator('div.group').filter({ hasText: 'settings' }).first();
+			await nodeDiv.hover();
+			
+			// Click delete button
+			const deleteButton = nodeDiv.locator('button:has-text("Delete")');
+			await deleteButton.click();
+			
+			// Should show delete confirmation popup
+			await expect(page.locator('h2:has-text("Delete Key")')).toBeVisible();
+			
+			// Cancel deletion
+			await page.click('button:has-text("Cancel")');
+			
+			// Settings should still be visible
+			await expect(page.locator('span.text-blue-600:has-text("settings")')).toBeVisible();
+		});
+
+		test('should rename a key', async ({ page }) => {
+			// Hover over settings node to show rename button
+			const settingsNode = page.locator('div.group').filter({ hasText: 'settings' }).first();
+			await settingsNode.hover();
+			
+			// Click rename button
+			const renameButton = settingsNode.locator('button:has-text("Rename")');
+			await renameButton.click();
+			
+			// Should show textarea for renaming
+			const renameTextarea = page.locator('textarea').first();
+			await expect(renameTextarea).toBeVisible();
+			await expect(renameTextarea).toBeFocused();
+			
+			// Change the name
+			await renameTextarea.clear();
+			await renameTextarea.fill('preferences');
+			await renameTextarea.press('Enter');
+			
+			// Should show modified badge
+			await expect(page.locator('text=Modified')).toBeVisible();
+			
+			// Old name should be gone, new name should appear
+			await expect(page.locator('span.text-blue-600:has-text("settings")')).not.toBeVisible();
+			await expect(page.locator('span.text-blue-600:has-text("preferences")')).toBeVisible();
+		});
+
+		test('should cancel rename with Escape', async ({ page }) => {
+			// Hover over settings node
+			const settingsNode = page.locator('div.group').filter({ hasText: 'settings' }).first();
+			await settingsNode.hover();
+			
+			// Click rename button
+			const renameButton = settingsNode.locator('button:has-text("Rename")');
+			await renameButton.click();
+			
+			// Should show textarea
+			const renameTextarea = page.locator('textarea').first();
+			await expect(renameTextarea).toBeVisible();
+			
+			// Try to change the name
+			await renameTextarea.clear();
+			await renameTextarea.fill('newname');
+			
+			// Press Escape to cancel
+			await renameTextarea.press('Escape');
+			
+			// Should revert to original name
+			await expect(page.locator('span.text-blue-600:has-text("settings")')).toBeVisible();
+			await expect(page.locator('span.text-blue-600:has-text("newname")')).not.toBeVisible();
+		});
+
+		test('should prevent duplicate key names when renaming', async ({ page }) => {
+			page.on('dialog', async (dialog) => {
+				expect(dialog.message()).toContain('already exists');
+				await dialog.accept();
+			});
+			
+			// Hover over settings node
+			const settingsNode = page.locator('div.group').filter({ hasText: 'settings' }).first();
+			await settingsNode.hover();
+			
+			// Click rename button
+			const renameButton = settingsNode.locator('button:has-text("Rename")');
+			await renameButton.click();
+			
+			// Try to rename to existing key "users"
+			const renameTextarea = page.locator('textarea').first();
+			await renameTextarea.clear();
+			await renameTextarea.fill('users');
+			await renameTextarea.press('Enter');
+			
+			// Should still show original name
+			await expect(page.locator('span.text-blue-600:has-text("settings")')).toBeVisible();
+		});
+
+		test('should not show rename button for array items', async ({ page }) => {
+			// Navigate into users array
+			await page.locator('span.text-blue-600:has-text("users")').first().dblclick();
+			await page.waitForSelector('text=Back to root');
+			
+			// Hover over first array item
+			const arrayItemNode = page.locator('div.group').filter({ hasText: '0 {}' }).first();
+			await arrayItemNode.hover();
+			
+			// Rename button should not be visible
+			await expect(arrayItemNode.locator('button:has-text("Rename")')).not.toBeVisible();
+			
+			// But other buttons should still be there
+			await expect(arrayItemNode.locator('button:has-text("Delete")')).toBeVisible();
+		});
+
+		test('should not show rename button at root array level', async ({ page }) => {
+			// Load data that is an array at root
+			const arrayData = [
+				{ id: 1, name: 'Item 1' },
+				{ id: 2, name: 'Item 2' }
+			];
+			
+			const fileChooserPromise = page.waitForEvent('filechooser');
+			await page.click('button:has-text("Open File")');
+			const fileChooser = await fileChooserPromise;
+			
+			await fileChooser.setFiles({
+				name: 'array.json',
+				mimeType: 'application/json',
+				buffer: Buffer.from(JSON.stringify(arrayData))
+			});
+			
+			await page.waitForSelector('text=array.json');
+			
+			// Expand root
+			const rootNode = page.locator('div.group').first();
+			await rootNode.hover();
+			
+			// Rename button should not be visible for root array
+			await expect(rootNode.locator('button:has-text("Rename")')).not.toBeVisible();
+		});
+
+		test('should show helper text when renaming', async ({ page }) => {
+			// Hover over settings node
+			const settingsNode = page.locator('div.group').filter({ hasText: 'settings' }).first();
+			await settingsNode.hover();
+			
+			// Click rename button
+			const renameButton = settingsNode.locator('button:has-text("Rename")');
+			await renameButton.click();
+			
+			// Should show helper text
+			await expect(page.locator('text=Press Enter to save, Esc to cancel')).toBeVisible();
+		});
+
+		test('should rename nested keys', async ({ page }) => {
+			// Navigate into settings object
+			await page.locator('span.text-blue-600:has-text("settings")').first().dblclick();
+			await page.waitForSelector('text=Back to root');
+			
+			// Hover over theme key
+			const themeNode = page.locator('div.group').filter({ hasText: 'theme' }).first();
+			await themeNode.hover();
+			
+			// Click rename button
+			const renameButton = themeNode.locator('button:has-text("Rename")');
+			await renameButton.click();
+			
+			// Rename to "colorScheme"
+			const renameTextarea = page.locator('textarea').first();
+			await renameTextarea.clear();
+			await renameTextarea.fill('colorScheme');
+			await renameTextarea.press('Enter');
+			
+			// Should show modified
+			await expect(page.locator('text=Modified')).toBeVisible();
+			
+			// New name should appear
+			await expect(page.locator('span.text-blue-600:has-text("colorScheme")')).toBeVisible();
+			await expect(page.locator('span.text-blue-600:has-text("theme")')).not.toBeVisible();
 		});
 
 		test('should add a key to an object', async ({ page }) => {
