@@ -11,6 +11,7 @@
 	} from '$lib/utils/helpers';
 	import { EDITOR_CONSTANTS } from '$lib/utils/constants';
 	import AddKeyPopup from '../Popups/AddKeyPopup.svelte';
+	import AddItemPopup from '../Popups/AddItemPopup.svelte';
 	import DeleteKeyPopup from '../Popups/DeleteKeyPopup.svelte';
 
 	let {
@@ -30,7 +31,9 @@
 	let editValue = $state('');
 	let containerElement: HTMLTextAreaElement | null = $state(null);
 	let showAddKeyPopup = $state(false);
+	let showAddItemPopup = $state(false);
 	let addKeyTargetPath: JSONPath = $state([]);
+	let addItemTargetPath: JSONPath = $state([]);
 	let showDeleteKeyPopup = $state(false);
 	let keyToDelete = $state('');
 	let renamingPath: string | null = $state(null);
@@ -91,6 +94,11 @@
 	function openAddKeyPopup(path: JSONPath): void {
 		addKeyTargetPath = path;
 		showAddKeyPopup = true;
+	}
+
+	function openAddItemPopup(path: JSONPath): void {
+		addItemTargetPath = path;
+		showAddItemPopup = true;
 	}
 
 	async function startRenaming(path: JSONPath): Promise<void> {
@@ -325,8 +333,8 @@
 					<div class="mr-2 h-6 w-6 shrink-0"></div>
 				{/if}
 
-				<div class="flex flex-1 flex-col py-1.5 min-w-0">
-					<div class="flex items-center min-w-0">
+				<div class="flex min-w-0 flex-1 flex-col py-1.5">
+					<div class="flex min-w-0 items-center">
 						{#if renamingPath === pathToKey(node.path)}
 							<textarea
 								bind:this={renameContainerElement}
@@ -345,7 +353,7 @@
 							></textarea>
 						{:else}
 							<span
-								class="cursor-pointer rounded-md px-2 py-1 font-semibold text-blue-600 transition-all duration-200 hover:bg-blue-100 truncate max-w-xs shrink-0"
+								class="max-w-xs shrink-0 cursor-pointer truncate rounded-md px-2 py-1 font-semibold text-blue-600 transition-all duration-200 hover:bg-blue-100"
 								ondblclick={(e) => handleDoubleClick(e, node.path, node.value)}
 								role="button"
 								tabindex="0"
@@ -379,7 +387,7 @@
 							></textarea>
 						{:else}
 							<span
-								class="ml-2 rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600 truncate"
+								class="ml-2 truncate rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600"
 								ondblclick={(e) => handleDoubleClick(e, node.path, node.value)}
 								role="button"
 								tabindex="0"
@@ -428,6 +436,15 @@
 							Add Key
 						</button>
 					{/if}
+					{#if node.isArray}
+						<button
+							class="rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-700 transition-all duration-200 hover:bg-green-200"
+							onclick={() => openAddItemPopup(node.path)}
+							type="button"
+						>
+							Add Item
+						</button>
+					{/if}
 					{#if canRenameKey(node.path)}
 						<button
 							class="rounded-md bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700 transition-all duration-200 hover:bg-purple-200"
@@ -461,6 +478,18 @@
 			showAddKeyPopup = false;
 		}}
 		onClose={() => (showAddKeyPopup = false)}
+	/>
+{/if}
+
+{#if showAddItemPopup}
+	<AddItemPopup
+		{data}
+		targetPath={addItemTargetPath}
+		onAdd={(newData) => {
+			update(newData);
+			showAddItemPopup = false;
+		}}
+		onClose={() => (showAddItemPopup = false)}
 	/>
 {/if}
 
