@@ -30,6 +30,7 @@
 	let resizeStartX = 0;
 	let resizeStartWidth = 0;
 	let notification: { message: string; type: 'error' } | null = $state(null);
+	let displayLimit = $state(100);
 
 	function flattenForTable(obj: JSONValue, prefix = ''): TableRow[] {
 		const items: TableRow[] = [];
@@ -220,6 +221,10 @@
 		closeContextMenu();
 	}
 
+	function loadMore(): void {
+		displayLimit = Math.min(displayLimit + 100, sortedData.length);
+	}
+
 	onMount(() => {
 		const handlers = {
 			click: closeContextMenu,
@@ -245,12 +250,15 @@
 	const tableData = $derived(flattenForTable(data));
 	const columns = $derived(tableData.length > 0 ? Object.keys(tableData[0]).filter((k) => k !== 'path') : []);
 	const sortedData = $derived(sortKey ? sortByKey(tableData, sortKey, sortDirection) : tableData);
+	const paginatedData = $derived(sortedData.slice(0, displayLimit));
+	const hasMore = $derived(sortedData.length > displayLimit);
 	const isSimpleKeyValue = $derived(columns.length === 2 && columns.includes('key') && columns.includes('value'));
 	const isArrayView = $derived(Array.isArray(data));
 
 	$effect(() => {
 		const _ = columns;
 		columnWidths = {};
+		displayLimit = 100;
 	});
 </script>
 
@@ -314,7 +322,7 @@
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-100">
-				{#each sortedData as row, rowIndex}
+				{#each paginatedData as row, rowIndex}
 					<tr class="group/row transition-colors even:bg-gray-50/30 hover:bg-blue-50/40">
 						{#each columns as column}
 							{@const cellKey = getCellKey(rowIndex, column)}
@@ -433,6 +441,18 @@
 				{/each}
 			</tbody>
 		</table>
+		{#if hasMore}
+			<div class="flex justify-center border-t border-gray-200 bg-gray-50 py-4">
+				<button
+					onclick={loadMore}
+					class="flex items-center space-x-2 rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow focus:ring-2 focus:ring-gray-500/20 focus:ring-offset-2 focus:outline-none"
+					type="button"
+				>
+					<span>Load More</span>
+					<span class="text-xs text-gray-500">({sortedData.length - displayLimit} remaining)</span>
+				</button>
+			</div>
+		{/if}
 	{:else}
 		<div class="flex h-full flex-col items-center justify-center space-y-2 text-gray-400">
 			<svg class="h-12 w-12 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
