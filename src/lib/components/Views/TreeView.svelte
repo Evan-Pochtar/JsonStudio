@@ -486,14 +486,14 @@
 							</button>
 						{/if}
 						{#if node.isArray}
-						<button
-							class="rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-700 transition-all duration-200 hover:bg-green-200"
-							onclick={() => openAddItemPopup(node.path)}
-							type="button"
-						>
-							Add Item
-						</button>
-					{/if}
+							<button
+								class="rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-700 transition-all duration-200 hover:bg-green-200"
+								onclick={() => openAddItemPopup(node.path)}
+								type="button"
+							>
+								Add Item
+							</button>
+						{/if}
 						{#if canRenameKey(node.path)}
 							<button
 								class="rounded-md bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700 transition-all duration-200 hover:bg-purple-200"
