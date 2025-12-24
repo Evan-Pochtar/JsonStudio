@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import type { JSONValue, JSONPath, JSONObject, SearchMatch, UndoEntry } from '$lib/types';
-	import { safeClone, getNestedValue, setNestedValue } from '$lib/utils/helpers';
+	import { safeClone, getNestedValue, setNestedValue, debounce } from '$lib/utils/helpers';
 	import { EDITOR_CONSTANTS, TAILWIND_CLASSES } from '$lib/utils/constants';
 	import TableView from './Views/TableView.svelte';
 	import TreeView from './Views/TreeView.svelte';
@@ -35,6 +35,10 @@
 	let redoStack: UndoEntry[] = [];
 	let filteredData: JSONValue = $state({} as JSONObject);
 	let searchIndex = new Map<string, SearchMatch[]>();
+	let searchIndexBuilt = $state(false);
+	let isLargeDataset = $state(false);
+
+	const LARGE_DATASET_THRESHOLD = 5000;
 
 	export function loadJson(data: JSONValue, name = 'untitled.json'): void {
 		currentData = safeClone(data);
@@ -44,7 +48,34 @@
 		undoStack = [];
 		redoStack = [];
 		updateFilteredData();
-		buildSearchIndex();
+
+		const size = estimateDataSize(data);
+		isLargeDataset = size > LARGE_DATASET_THRESHOLD;
+
+		if (isLargeDataset) {
+			searchIndexBuilt = false;
+			searchIndex.clear();
+		} else {
+			buildSearchIndex();
+		}
+	}
+
+	function estimateDataSize(obj: JSONValue): number {
+		let count = 0;
+		function countNodes(val: any): void {
+			if (val && typeof val === 'object') {
+				count++;
+				if (Array.isArray(val)) {
+					val.forEach(countNodes);
+				} else {
+					Object.values(val).forEach(countNodes);
+				}
+			} else {
+				count++;
+			}
+		}
+		countNodes(obj);
+		return count;
 	}
 
 	function addToUndoStack(): void {
@@ -71,7 +102,9 @@
 		focusedPath = previous.path;
 		isModified = true;
 		updateFilteredData();
-		buildSearchIndex();
+
+		searchIndexBuilt = false;
+		searchIndex.clear();
 	}
 
 	function redo(): void {
@@ -87,7 +120,9 @@
 		focusedPath = next.path;
 		isModified = true;
 		updateFilteredData();
-		buildSearchIndex();
+
+		searchIndexBuilt = false;
+		searchIndex.clear();
 	}
 
 	function updateData(newData: JSONValue): void {
@@ -102,19 +137,46 @@
 
 		isModified = true;
 		updateFilteredData();
-		buildSearchIndex();
+		searchIndexBuilt = false;
+		searchIndex.clear();
 	}
 
+	const debouncedBuildSearchIndex = debounce(() => {
+		buildSearchIndexInternal();
+	}, 500);
+
 	function buildSearchIndex(): void {
+		if (isLargeDataset) {
+			debouncedBuildSearchIndex();
+		} else {
+			buildSearchIndexInternal();
+		}
+	}
+
+	function buildSearchIndexInternal(): void {
 		searchIndex.clear();
 
-		function indexObject(obj: JSONValue, path: JSONPath = []): void {
+		const maxDepth = isLargeDataset ? 5 : Infinity;
+		let nodeCount = 0;
+		const maxNodes = 50000;
+
+		function indexObject(obj: JSONValue, path: JSONPath = [], depth = 0): void {
+			if (nodeCount > maxNodes || depth > maxDepth) return;
 			if (!obj || typeof obj !== 'object') return;
 
 			if (Array.isArray(obj)) {
-				obj.forEach((item, index) => indexObject(item, [...path, index]));
+				const step = isLargeDataset && obj.length > 1000 ? Math.ceil(obj.length / 1000) : 1;
+				for (let i = 0; i < obj.length; i += step) {
+					nodeCount++;
+					if (nodeCount > maxNodes) break;
+					indexObject(obj[i], [...path, i], depth + 1);
+				}
 			} else {
-				Object.entries(obj as JSONObject).forEach(([key, value]) => {
+				const entries = Object.entries(obj as JSONObject);
+				for (const [key, value] of entries) {
+					nodeCount++;
+					if (nodeCount > maxNodes) break;
+
 					const currentPath = [...path, key];
 					if (typeof value === 'string' || typeof value === 'number') {
 						const searchText = `${key}:${value}`.toLowerCase();
@@ -128,11 +190,13 @@
 							type: typeof value
 						});
 					}
-					indexObject(value, currentPath);
-				});
+					indexObject(value, currentPath, depth + 1);
+				}
 			}
 		}
+
 		indexObject(currentData);
+		searchIndexBuilt = true;
 	}
 
 	function performSearch(query: string, keyFilter: string | null = null): void {
@@ -141,8 +205,13 @@
 			return;
 		}
 
+		if (!searchIndexBuilt) {
+			buildSearchIndexInternal();
+		}
+
 		const queryLower = query.toLowerCase();
 		const results: SearchMatch[] = [];
+
 		for (const [indexKey, matches] of searchIndex.entries()) {
 			if (keyFilter?.trim()) {
 				matches.forEach((match) => {
@@ -156,6 +225,8 @@
 			} else if (indexKey.includes(queryLower)) {
 				results.push(...matches);
 			}
+
+			if (results.length >= EDITOR_CONSTANTS.MAX_SEARCH_RESULTS) break;
 		}
 
 		searchResults = results.slice(0, EDITOR_CONSTANTS.MAX_SEARCH_RESULTS);
@@ -208,7 +279,7 @@
 			}
 
 			updateFilteredData();
-			buildSearchIndex();
+			searchIndexBuilt = false;
 		} catch (e) {
 			alert('Failed to apply format');
 		}
@@ -230,7 +301,7 @@
 
 		isModified = true;
 		updateFilteredData();
-		buildSearchIndex();
+		searchIndexBuilt = false;
 	}
 
 	function handleNavigateBack(): void {
@@ -295,6 +366,18 @@
 				</svg>
 				<span>{focusedPath.length > 0 ? focusedPath.join('.') : 'Root level'}</span>
 			</div>
+			{#if isLargeDataset}
+				<div class="mt-2 flex items-center space-x-1.5 rounded bg-yellow-50 px-2 py-1 text-xs text-yellow-600">
+					<svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+						<path
+							fill-rule="evenodd"
+							d="M8.257 3.099c.765-1.36 2.722-1.36 3.487 0l5.58 9.92c.765 1.36-.202 3.08-1.742 3.08H4.419c-1.54 0-2.507-1.72-1.742-3.08l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+							clip-rule="evenodd"
+						/>
+					</svg>
+					<span>Large dataset - some features optimized</span>
+				</div>
+			{/if}
 		</div>
 
 		<div class="border-b border-gray-200/80 bg-white/95 p-3 shadow-sm backdrop-blur-sm">

@@ -31,12 +31,16 @@
 	let resizeStartWidth = 0;
 	let notification: { message: string; type: 'error' } | null = $state(null);
 	let displayLimit = $state(100);
+	let cachedTableData: TableRow[] = [];
+	let cachedColumns: string[] = [];
 
 	function flattenForTable(obj: JSONValue, prefix = ''): TableRow[] {
 		const items: TableRow[] = [];
 
 		if (Array.isArray(obj)) {
-			obj.forEach((item, index) => {
+			const limit = Math.min(obj.length, 10000);
+			for (let index = 0; index < limit; index++) {
+				const item = obj[index];
 				if (typeof item === 'object' && item !== null) {
 					items.push({
 						key: `${prefix}[${index}]`,
@@ -50,7 +54,15 @@
 						value: item
 					});
 				}
-			});
+			}
+			
+			if (obj.length > limit) {
+				items.push({
+					key: `... ${obj.length - limit} more items`,
+					path: [-1],
+					value: 'Dataset too large - showing first 10,000 items'
+				});
+			}
 		} else if (typeof obj === 'object' && obj !== null) {
 			const entries = Object.entries(obj as Record<string, any>);
 
@@ -247,9 +259,26 @@
 		return typeof val === 'string' && /^\[\d+ (items|props)\]$/.test(val);
 	}
 
-	const tableData = $derived(flattenForTable(data));
-	const columns = $derived(tableData.length > 0 ? Object.keys(tableData[0]).filter((k) => k !== 'path') : []);
-	const sortedData = $derived(sortKey ? sortByKey(tableData, sortKey, sortDirection) : tableData);
+	const tableData = $derived.by(() => {
+		const newData = flattenForTable(data);
+		cachedTableData = newData;
+		return newData;
+	});
+
+	const columns = $derived.by(() => {
+		const cols = tableData.length > 0 ? Object.keys(tableData[0]).filter((k) => k !== 'path') : [];
+		cachedColumns = cols;
+		return cols;
+	});
+
+	const sortedData = $derived.by(() => {
+		if (!sortKey) return tableData;
+		if (tableData.length > 5000) {
+			console.warn('Sorting large dataset - this may take a moment');
+		}
+		return sortByKey(tableData, sortKey, sortDirection);
+	});
+
 	const paginatedData = $derived(sortedData.slice(0, displayLimit));
 	const hasMore = $derived(sortedData.length > displayLimit);
 	const isSimpleKeyValue = $derived(columns.length === 2 && columns.includes('key') && columns.includes('value'));
